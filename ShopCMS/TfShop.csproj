@@ -1,0 +1,1202 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.Default.props" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.Default.props')" />
+  <Import Project="..\packages\Microsoft.Net.Compilers.1.0.0\build\Microsoft.Net.Compilers.props" Condition="Exists('..\packages\Microsoft.Net.Compilers.1.0.0\build\Microsoft.Net.Compilers.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>
+    </ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{48EFFB49-2FC3-42C3-840C-F0022915BAB7}</ProjectGuid>
+    <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>TfShop</RootNamespace>
+    <AssemblyName>TfShop</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <MvcBuildViews>false</MvcBuildViews>
+    <UseIISExpress>true</UseIISExpress>
+    <IISExpressSSLPort />
+    <IISExpressAnonymousAuthentication />
+    <IISExpressWindowsAuthentication />
+    <IISExpressUseClassicPipelineMode />
+    <UseGlobalApplicationHostFile />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
+    <TypeScriptToolsVersion>1.8</TypeScriptToolsVersion>
+    <Use64BitIISExpress />
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AjaxMin, Version=5.14.5506.26196, Culture=neutral, PublicKeyToken=21ef50ce11b5d80f, processorArchitecture=MSIL">
+      <HintPath>..\packages\AjaxMin.5.14.5506.26202\lib\net40\AjaxMin.dll</HintPath>
+    </Reference>
+    <Reference Include="AutoMapper, Version=9.0.0.0, Culture=neutral, PublicKeyToken=be96cd2c38ef1005, processorArchitecture=MSIL">
+      <HintPath>..\packages\AutoMapper.9.0.0\lib\net461\AutoMapper.dll</HintPath>
+    </Reference>
+    <Reference Include="BCrypt.Net-Next, Version=4.1.0.0, Culture=neutral, PublicKeyToken=1e11be04b6288443, processorArchitecture=MSIL">
+      <HintPath>..\packages\BCrypt.Net-Next.4.1.0\lib\net472\BCrypt.Net-Next.dll</HintPath>
+    </Reference>
+    <Reference Include="BouncyCastle.Crypto, Version=1.8.9.0, Culture=neutral, PublicKeyToken=0e99375e54769942, processorArchitecture=MSIL">
+      <HintPath>..\packages\Portable.BouncyCastle.1.8.9\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="Combres, Version=2.3.0.4, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\combres.2.3.0.4\lib\net40\Combres.dll</HintPath>
+    </Reference>
+    <Reference Include="Combres.Mvc, Version=2.3.0.4, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\combres.mvc.2.3.0.4\lib\net40\Combres.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="dotless.Core, Version=1.4.1.0, Culture=neutral, PublicKeyToken=96b446c9e63eae34, processorArchitecture=MSIL">
+      <HintPath>..\packages\dotless.1.4.1.0\lib\dotless.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="EcmaScript.NET, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\EcmaScript.Net.1.0.1.0\lib\net20\EcmaScript.NET.dll</HintPath>
+    </Reference>
+    <Reference Include="Elmah, Version=1.2.13605.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\elmah.corelibrary.1.2\lib\Elmah.dll</HintPath>
+    </Reference>
+    <Reference Include="Elmah.Mvc, Version=2.1.2.1389, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Elmah.Mvc.2.1.2\lib\net40\Elmah.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="EPPlus, Version=5.5.2.0, Culture=neutral, PublicKeyToken=ea159fdaa78159a1, processorArchitecture=MSIL">
+      <HintPath>..\packages\EPPlus.5.5.2\lib\net45\EPPlus.dll</HintPath>
+    </Reference>
+    <Reference Include="Fasterflect, Version=2.1.3.0, Culture=neutral, PublicKeyToken=38d18473284c1ca7, processorArchitecture=MSIL">
+      <HintPath>..\packages\fasterflect.2.1.3\lib\net40\Fasterflect.dll</HintPath>
+    </Reference>
+    <Reference Include="FirebaseAdmin, Version=2.2.0.0, Culture=neutral, PublicKeyToken=97c8d00c348326ed, processorArchitecture=MSIL">
+      <HintPath>..\packages\FirebaseAdmin.2.2.0\lib\net461\FirebaseAdmin.dll</HintPath>
+    </Reference>
+    <Reference Include="gfoidl.Base64, Version=1.1.1501.1, Culture=neutral, PublicKeyToken=6a1c26790d4ba8ae, processorArchitecture=MSIL">
+      <HintPath>..\packages\gfoidl.Base64.1.1.1\lib\net45\gfoidl.Base64.dll</HintPath>
+    </Reference>
+    <Reference Include="Glimpse.Core, Version=1.8.6.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Glimpse.1.8.6\lib\net45\Glimpse.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Api.Gax, Version=3.2.0.0, Culture=neutral, PublicKeyToken=3ec5ea7f18953e47, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Api.Gax.3.2.0\lib\net461\Google.Api.Gax.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Api.Gax.Rest, Version=3.2.0.0, Culture=neutral, PublicKeyToken=3ec5ea7f18953e47, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Api.Gax.Rest.3.2.0\lib\net461\Google.Api.Gax.Rest.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis, Version=1.49.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.1.49.0\lib\net45\Google.Apis.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis.Auth, Version=1.49.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.Auth.1.49.0\lib\net45\Google.Apis.Auth.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis.Auth.PlatformServices, Version=1.49.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.Auth.1.49.0\lib\net45\Google.Apis.Auth.PlatformServices.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis.Core, Version=1.49.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.Core.1.49.0\lib\net45\Google.Apis.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis.PlatformServices, Version=1.49.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.1.49.0\lib\net45\Google.Apis.PlatformServices.dll</HintPath>
+    </Reference>
+    <Reference Include="Hangfire.Core, Version=1.8.23.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Hangfire.Core.1.8.23\lib\net46\Hangfire.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Hangfire.SqlServer, Version=1.8.23.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Hangfire.SqlServer.1.8.23\lib\net451\Hangfire.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="JsonWebToken, Version=1.9.4.0, Culture=neutral, PublicKeyToken=7ef232d6ee17cdab, processorArchitecture=MSIL">
+      <HintPath>..\packages\JsonWebToken.1.9.4\lib\net47\JsonWebToken.dll</HintPath>
+    </Reference>
+    <Reference Include="JWT, Version=10.0.0.0, Culture=neutral, PublicKeyToken=6f98bca0f40f2ecf, processorArchitecture=MSIL">
+      <HintPath>..\packages\JWT.10.1.1\lib\net462\JWT.dll</HintPath>
+    </Reference>
+    <Reference Include="Kavenegar, Version=1.2.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Kavenegar.1.2.4\lib\net35\Kavenegar.dll</HintPath>
+    </Reference>
+    <Reference Include="LinqToExcel, Version=1.11.0.0, Culture=neutral, PublicKeyToken=9c8ea65a58f03f1f, processorArchitecture=MSIL">
+      <HintPath>..\packages\LinqToExcel.1.11.0\lib\LinqToExcel.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.AspNet.SignalR.Core, Version=2.4.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.SignalR.Core.2.4.3\lib\net45\Microsoft.AspNet.SignalR.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.AspNet.SignalR.SystemWeb, Version=2.4.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.SignalR.SystemWeb.2.4.3\lib\net45\Microsoft.AspNet.SignalR.SystemWeb.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.8.0.0\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Extensions.Logging.Abstractions.2.1.1\lib\netstandard2.0\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.IdentityModel.Abstractions, Version=7.6.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.IdentityModel.Abstractions.7.6.1\lib\net472\Microsoft.IdentityModel.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.IdentityModel.JsonWebTokens, Version=7.6.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.IdentityModel.JsonWebTokens.7.6.1\lib\net472\Microsoft.IdentityModel.JsonWebTokens.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.IdentityModel.Logging, Version=7.6.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.IdentityModel.Logging.7.6.1\lib\net472\Microsoft.IdentityModel.Logging.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.IdentityModel.Tokens, Version=7.6.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.IdentityModel.Tokens.7.6.1\lib\net472\Microsoft.IdentityModel.Tokens.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.IO.RecyclableMemoryStream, Version=1.3.6.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.IO.RecyclableMemoryStream.1.3.6\lib\net46\Microsoft.IO.RecyclableMemoryStream.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin, Version=4.2.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Owin.4.2.2\lib\net45\Microsoft.Owin.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="PagedList, Version=1.17.0.0, Culture=neutral, PublicKeyToken=abbb863e9397c5e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\PagedList.1.17.0.0\lib\net40\PagedList.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="PagedList.Mvc, Version=4.5.0.0, Culture=neutral, PublicKeyToken=abbb863e9397c5e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\PagedList.Mvc.4.5.0.0\lib\net40\PagedList.Mvc.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="Quartz, Version=3.2.4.0, Culture=neutral, PublicKeyToken=f6b8c98a402cc8a4, processorArchitecture=MSIL">
+      <HintPath>..\packages\Quartz.3.2.4\lib\net461\Quartz.dll</HintPath>
+    </Reference>
+    <Reference Include="Remotion, Version=1.13.52.2, Culture=neutral, PublicKeyToken=0669cf0452175907, processorArchitecture=MSIL">
+      <HintPath>..\packages\LinqToExcel.1.11.0\lib\Remotion.dll</HintPath>
+    </Reference>
+    <Reference Include="Remotion.Data.Linq, Version=1.13.52.2, Culture=neutral, PublicKeyToken=0669cf0452175907, processorArchitecture=MSIL">
+      <HintPath>..\packages\LinqToExcel.1.11.0\lib\Remotion.Data.Linq.dll</HintPath>
+    </Reference>
+    <Reference Include="Remotion.Interfaces, Version=1.13.52.2, Culture=neutral, PublicKeyToken=0669cf0452175907, processorArchitecture=MSIL">
+      <HintPath>..\packages\LinqToExcel.1.11.0\lib\Remotion.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="RestSharp">
+      <HintPath>C:\Users\Tfshops\Desktop\IpPanelSolution\IpPanelSolution\RestClientSendSMSSample\bin\Debug\RestSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="SixLabors.ImageSharp, Version=2.0.0.0, Culture=neutral, PublicKeyToken=d998eea7b14cab13, processorArchitecture=MSIL">
+      <HintPath>..\packages\SixLabors.ImageSharp.2.1.3\lib\netstandard2.0\SixLabors.ImageSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Stimulsoft.Base, Version=2020.2.1.0, Culture=neutral, PublicKeyToken=ebe6666cba19647a" />
+    <Reference Include="Stimulsoft.Report, Version=2020.2.1.0, Culture=neutral, PublicKeyToken=ebe6666cba19647a" />
+    <Reference Include="Stimulsoft.Report.Mvc, Version=2020.2.1.0, Culture=neutral, PublicKeyToken=ebe6666cba19647a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Stimulsoft.Reports.Web.2020.2.1\lib\net45\Stimulsoft.Report.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="Stimulsoft.Report.Web, Version=2020.2.1.0, Culture=neutral, PublicKeyToken=ebe6666cba19647a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Stimulsoft.Reports.Web.2020.2.1\lib\net45\Stimulsoft.Report.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="Stimulsoft.Report.WebDesign, Version=2020.2.1.0, Culture=neutral, PublicKeyToken=ebe6666cba19647a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Stimulsoft.Reports.Web.2020.2.1\lib\net45\Stimulsoft.Report.WebDesign.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.5.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.6.1\lib\net462\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Collections.Immutable, Version=1.2.5.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Collections.Immutable.1.7.1\lib\net461\System.Collections.Immutable.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.Annotations, Version=4.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ComponentModel.Annotations.4.7.0\lib\net461\System.ComponentModel.Annotations.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data.Linq" />
+    <Reference Include="System.Diagnostics.DiagnosticSource, Version=4.0.5.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Diagnostics.DiagnosticSource.4.7.1\lib\net46\System.Diagnostics.DiagnosticSource.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.IdentityModel.Tokens.Jwt, Version=7.6.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IdentityModel.Tokens.Jwt.7.6.1\lib\net472\System.IdentityModel.Tokens.Jwt.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IO, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.4.3.0\lib\net462\System.IO.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Memory, Version=4.0.5.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.6.3\lib\net462\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http, Version=4.1.1.3, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Net.Http.4.3.4\lib\net46\System.Net.Http.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Net.Http.Formatting, Version=5.2.6.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.Client.5.2.6\lib\net45\System.Net.Http.Formatting.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.6.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.6.1\lib\net462\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime, Version=4.1.1.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.4.3.1\lib\net462\System.Runtime.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.Caching" />
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.6.1.2\lib\net462\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Remoting" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Security.Cryptography.Algorithms, Version=4.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Algorithms.4.3.1\lib\net463\System.Security.Cryptography.Algorithms.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Cng, Version=4.3.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Cng.4.7.0\lib\net47\System.Security.Cryptography.Cng.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Encoding, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Encoding.4.3.0\lib\net46\System.Security.Cryptography.Encoding.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Primitives, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.Primitives.4.3.0\lib\net46\System.Security.Cryptography.Primitives.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.X509Certificates, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Security.Cryptography.X509Certificates.4.3.0\lib\net461\System.Security.Cryptography.X509Certificates.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Text.Encoding.CodePages, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Encoding.CodePages.5.0.0\lib\net461\System.Text.Encoding.CodePages.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Text.Encodings.Web, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Encodings.Web.8.0.0\lib\net462\System.Text.Encodings.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Text.Json, Version=8.0.0.2, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Json.8.0.2\lib\net462\System.Text.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks" />
+    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net461\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.DynamicData" />
+    <Reference Include="System.Web.Entity" />
+    <Reference Include="System.Web.ApplicationServices" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Web.Http, Version=5.2.6.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.Core.5.2.6\lib\net45\System.Web.Http.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Web.Http.WebHost, Version=5.2.6.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.WebHost.5.2.6\lib\net45\System.Web.Http.WebHost.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Abstractions" />
+    <Reference Include="System.Web.Routing" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.EnterpriseServices" />
+    <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http.WebRequest">
+    </Reference>
+    <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.Helpers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Mvc, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.AspNet.Mvc.5.2.3\lib\net45\System.Web.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Optimization">
+      <HintPath>..\packages\Microsoft.AspNet.Web.Optimization.1.1.3\lib\net40\System.Web.Optimization.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.AspNet.Razor.3.2.3\lib\net45\System.Web.Razor.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Deployment, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Deployment.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="WebActivatorEx, Version=2.0.0.0, Culture=neutral, PublicKeyToken=7b26dc2a43f6a0d4, processorArchitecture=MSIL">
+      <HintPath>..\packages\WebActivatorEx.2.0.6\lib\net40\WebActivatorEx.dll</HintPath>
+    </Reference>
+    <Reference Include="WebGrease">
+      <Private>True</Private>
+      <HintPath>..\packages\WebGrease.1.5.2\lib\WebGrease.dll</HintPath>
+    </Reference>
+    <Reference Include="Yahoo.Yui.Compressor, Version=2.7.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\YUICompressor.NET.2.7.0.0\lib\NET20\Yahoo.Yui.Compressor.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="EntityFramework">
+      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer">
+      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.AspNet.Identity.Core">
+      <HintPath>..\packages\Microsoft.AspNet.Identity.Core.2.2.1\lib\net45\Microsoft.AspNet.Identity.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.AspNet.Identity.Owin">
+      <HintPath>..\packages\Microsoft.AspNet.Identity.Owin.2.2.1\lib\net45\Microsoft.AspNet.Identity.Owin.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.AspNet.Identity.EntityFramework">
+      <HintPath>..\packages\Microsoft.AspNet.Identity.EntityFramework.2.2.1\lib\net45\Microsoft.AspNet.Identity.EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="Owin">
+      <HintPath>..\packages\Owin.1.0\lib\net40\Owin.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Host.SystemWeb">
+      <HintPath>..\packages\Microsoft.Owin.Host.SystemWeb.3.0.1\lib\net45\Microsoft.Owin.Host.SystemWeb.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Security">
+      <HintPath>..\packages\Microsoft.Owin.Security.3.0.1\lib\net45\Microsoft.Owin.Security.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Security.Facebook">
+      <HintPath>..\packages\Microsoft.Owin.Security.Facebook.3.0.1\lib\net45\Microsoft.Owin.Security.Facebook.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Security.Cookies">
+      <HintPath>..\packages\Microsoft.Owin.Security.Cookies.3.0.1\lib\net45\Microsoft.Owin.Security.Cookies.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Security.OAuth">
+      <HintPath>..\packages\Microsoft.Owin.Security.OAuth.3.0.1\lib\net45\Microsoft.Owin.Security.OAuth.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Security.Google">
+      <HintPath>..\packages\Microsoft.Owin.Security.Google.3.0.1\lib\net45\Microsoft.Owin.Security.Google.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Security.Twitter">
+      <HintPath>..\packages\Microsoft.Owin.Security.Twitter.3.0.1\lib\net45\Microsoft.Owin.Security.Twitter.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Security.MicrosoftAccount">
+      <HintPath>..\packages\Microsoft.Owin.Security.MicrosoftAccount.3.0.1\lib\net45\Microsoft.Owin.Security.MicrosoftAccount.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Areas\Admin\ViewModels\Home\Dashboard.cs" />
+    <Compile Include="Areas\Admin\ViewModels\Home\HeaderLayout.cs" />
+    <Compile Include="Areas\Admin\ViewModels\Product\ProductPriceViewModel.cs" />
+    <Compile Include="Areas\Admin\ViewModels\Report\FactorReport.cs" />
+    <Compile Include="Areas\Admin\ViewModels\Report\LabelReport.cs" />
+    <Compile Include="Controllers\ApiV1Controller.cs" />
+    <Compile Include="App_Start\BundleConfig.cs" />
+    <Compile Include="App_Start\Combres.cs" />
+    <Compile Include="App_Start\FilterConfig.cs" />
+    <Compile Include="App_Start\IdentityConfig.cs" />
+    <Compile Include="App_Start\RouteConfig.cs" />
+    <Compile Include="App_Start\Startup.Auth.cs" />
+    <Compile Include="App_Start\WebApiConfig.cs" />
+    <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\BaseController.cs" />
+    <Compile Include="Controllers\ProfileController.cs" />
+    <Compile Include="Global.asax.cs">
+      <DependentUpon>Global.asax</DependentUpon>
+    </Compile>
+    <Compile Include="Infrastructure\AccountApi\ApiProduct.cs" />
+    <Compile Include="Infrastructure\AccountApi\ApiCustomer.cs" />
+    <Compile Include="Infrastructure\AccountApi\ApiLogin.cs" />
+    <Compile Include="Infrastructure\AuthJTW\AuthJTW.cs" />
+    <Compile Include="Infrastructure\Cart\order.cs" />
+    <Compile Include="Infrastructure\Cart\Price.cs" />
+    <Compile Include="Infrastructure\Cart\Delivery.cs" />
+    <Compile Include="Infrastructure\CustomAttribute\Attribute.cs" />
+    <Compile Include="Infrastructure\DbSql\SqlManager.cs" />
+    <Compile Include="Infrastructure\EventLog\ClearLog.cs" />
+    <Compile Include="Infrastructure\EventLog\Logger.cs" />
+    <Compile Include="Infrastructure\Filter\ApiScopeAttribute .cs" />
+    <Compile Include="Infrastructure\Filter\RateLimiter.cs" />
+    <Compile Include="Infrastructure\Filter\ApiClientAuthorizeAttribute .cs" />
+    <Compile Include="Infrastructure\Filter\ApiClientCache.cs" />
+    <Compile Include="Infrastructure\Filter\NonAuthenticatedOnlyCacheAttribute.cs" />
+    <Compile Include="Infrastructure\Filter\JWTAuthorize.cs" />
+    <Compile Include="Infrastructure\Filter\UserActivitiesObj.cs" />
+    <Compile Include="Infrastructure\Filter\UserActivitiesFilter.cs" />
+    <Compile Include="Infrastructure\Filter\AutoExecueFilter.cs" />
+    <Compile Include="Infrastructure\Handler\ImageRouteHandler.cs" />
+    <Compile Include="Infrastructure\Helper\CaptureHelper.cs" />
+    <Compile Include="Infrastructure\Helper\HtmlHelpers.cs" />
+    <Compile Include="Infrastructure\Helper\ImageResult.cs" />
+    <Compile Include="Infrastructure\Helper\Recaptcha.cs" />
+    <Compile Include="Infrastructure\Helper\RegExAttribute.cs" />
+    <Compile Include="Infrastructure\Helper\TreeView.cs" />
+    <Compile Include="Infrastructure\Menu\LinkManager.cs" />
+    <Compile Include="Infrastructure\PayamIran\Shahkar.cs" />
+    <Compile Include="Infrastructure\Push\PushNotification.cs" />
+    <Compile Include="Infrastructure\Report\Extensions.cs" />
+    <Compile Include="Infrastructure\RSS\RssResult.cs" />
+    <Compile Include="Infrastructure\Security\Identitymanager.cs" />
+    <Compile Include="Infrastructure\Security\ModulePermission.cs" />
+    <Compile Include="Infrastructure\RSS\Generator.cs" />
+    <Compile Include="Infrastructure\RSS\Primary.cs" />
+    <Compile Include="Infrastructure\SiteMap\Generator.cs" />
+    <Compile Include="Infrastructure\SiteMap\Primary.cs" />
+    <Compile Include="Infrastructure\Sms\Pattern.cs" />
+    <Compile Include="Models\AccountViewModels.cs" />
+    <Compile Include="Models\DataClasses1.designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DataClasses1.dbml</DependentUpon>
+    </Compile>
+    <Compile Include="Models\ManageViewModels.cs" />
+    <Compile Include="Models\NotifModels.cs" />
+    <Compile Include="Models\UserHubModels.cs" />
+    <Compile Include="Hubs\NotificationHub.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <Compile Include="Startup.cs" />
+    <Compile Include="ViewModels\Api\Mag\singleContent.cs" />
+    <Compile Include="ViewModels\Api\Master\HeaderVM.cs" />
+    <Compile Include="ViewModels\Api\HomePage\SliderVM.cs" />
+    <Compile Include="ViewModels\Api\pay\payWM.cs" />
+    <Compile Include="ViewModels\Api\Product\ProductItemVM.cs" />
+    <Compile Include="ViewModels\Basket\PaymentAttribute.cs" />
+    <Compile Include="ViewModels\Basket\ProfileOrder.cs" />
+    <Compile Include="ViewModels\Content\ContentTypeViewModel.cs" />
+    <Compile Include="ViewModels\Content\ContentViewModel.cs" />
+    <Compile Include="ViewModels\Content\SourceViewModel.cs" />
+    <Compile Include="ViewModels\Home\JsTools.cs" />
+    <Compile Include="ViewModels\Home\Master.cs" />
+    <Compile Include="ViewModels\Home\Meta.cs" />
+    <Compile Include="ViewModels\Home\Panel.cs" />
+    <Compile Include="ViewModels\Home\SearchList.cs" />
+    <Compile Include="ViewModels\map\DetailMap.cs" />
+    <Compile Include="ViewModels\Profile\OrderType.cs" />
+    <Compile Include="ViewModels\Profile\ShowSideBarProfileViewModel.cs" />
+    <Compile Include="ViewModels\RSS\Post.cs" />
+    <Compile Include="ViewModels\RSS\PostToXML.cs" />
+    <Compile Include="ViewModels\Setting\SettingViewModels.cs" />
+    <Compile Include="ViewModels\Slider\OtherImageViewModel.cs" />
+    <Compile Include="ViewModels\Slider\SliderImageViewModel.cs" />
+    <Compile Include="Web References\com.zarinpal.ir\Reference.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Reference.map</DependentUpon>
+    </Compile>
+    <Compile Include="Web References\ir.shaparak.bpm\Reference.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Reference.map</DependentUpon>
+    </Compile>
+    <Compile Include="Web References\ir.shaparak.sep1\Reference.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Reference.map</DependentUpon>
+    </Compile>
+    <Compile Include="Web References\ir.shaparak.sep\Reference.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Reference.map</DependentUpon>
+    </Compile>
+    <Compile Include="Web References\NiksmsWebservice\Reference.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Reference.map</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_Data\combres.xml" />
+    <Content Include="App_Data\combres_full_with_annotation.xml" />
+    <Content Include="App_Data\combres_minimal.xml" />
+    <Content Include="combres.readme" />
+    <Content Include="Content\UploadFiles\LG_c3815d1c-d12d-4b90-929f-d4a7503f425b.mp4" />
+    <Content Include="Content\UploadFiles\productprice\LG_236fbaf2-3cbe-40b3-a596-38c987e97216.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_483ac65e-96ec-4563-ade1-d956ed9e9c89.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_49fc1334-ccc3-4ff7-89b5-cdc3d22279d4.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_4a55befc-e3f4-425d-9a49-957164394f3d.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_6d3a196e-15fa-4516-b191-39cbeacf620d.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_7d79209a-27a8-4329-b872-a09599111522.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_aa55187d-7182-4b09-9d7e-563d9ab42670.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_ab20aac6-1b55-4965-b553-a1e39629458a.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_ae6dbbcd-d3d3-4e4e-ba40-79ab265b6a73.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_bbac3881-ee91-48f8-b85f-e50ca9c4d81a.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_bd678155-8060-4d04-bf7c-b1b2ca61a623.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_bfe29353-5456-4050-b152-1570bb017b7e.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_c5cbe2d7-3187-4104-aa53-5b182fa6ed9d.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_c78dbbcb-a211-4a29-a00c-4d5b38076557.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_cc970ede-6615-4508-aecf-70e87e7e2950.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_da1f90ff-8e8d-476d-902c-770eb5117acc.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_e60f37a1-af21-4a92-bd5a-357fa7bca910.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_eb56bc87-2d46-4434-9635-4e9500c8d9f7.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_f58a97a6-fed9-4bfc-be02-fadcd26ac201.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_f9bef3c3-dfd4-4480-b1a1-f508cbd66ae1.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_fd0dcf8b-0c60-4a7a-8422-3dc7efd08a31.jpg" />
+    <Content Include="Content\UploadFiles\productprice\LG_fdbb4c93-4022-4a74-bea5-6396886e806f.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_0f897e8b-d274-49ce-875b-ab6a4c5bc19d.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_105bc01d-a4a6-44fc-be49-9dfa49451a5c.mp4" />
+    <Content Include="Content\UploadFiles\products\LG_18e5eb06-f892-42b8-91bd-63025ae0a500.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_236fbaf2-3cbe-40b3-a596-38c987e97216.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_31763254-5847-4e71-a0f0-35c5d9913b92.mp3" />
+    <Content Include="Content\UploadFiles\products\LG_426b1c3b-a8d1-4d31-a392-901d46092742.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_483ac65e-96ec-4563-ade1-d956ed9e9c89.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_4a55befc-e3f4-425d-9a49-957164394f3d.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_564247ea-19e5-4402-a8ff-3c17ea32223b.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_61b22030-349c-4a68-898b-51430c3a29db.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_6d3a196e-15fa-4516-b191-39cbeacf620d.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_7d79209a-27a8-4329-b872-a09599111522.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_83a5c7bd-60e0-4ab9-8b13-4932d32da6c2.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_84718ca7-a485-4043-b6c6-fd83ddf40b8d.mp3" />
+    <Content Include="Content\UploadFiles\products\LG_89d54d34-e24b-4744-93b4-53fe9deb2d28.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_91593d12-4c05-48f4-9798-ee64df29d71a.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_a3f7f89d-6e18-4628-a50a-eb639d29999b.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_aa55187d-7182-4b09-9d7e-563d9ab42670.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_ab20aac6-1b55-4965-b553-a1e39629458a.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_ad978f54-2bb7-4594-8832-e3c816b0678c.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_ae6dbbcd-d3d3-4e4e-ba40-79ab265b6a73.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_b11b09ec-f9da-4324-9d8f-f11eaa5d3bc1.mp4" />
+    <Content Include="Content\UploadFiles\products\LG_bb0f67e1-2700-42dc-ac6a-44ad0a2304ed.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_bbac3881-ee91-48f8-b85f-e50ca9c4d81a.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_bd678155-8060-4d04-bf7c-b1b2ca61a623.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_bfe29353-5456-4050-b152-1570bb017b7e.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_c3815d1c-d12d-4b90-929f-d4a7503f425b.mp4" />
+    <Content Include="Content\UploadFiles\products\LG_c5cbe2d7-3187-4104-aa53-5b182fa6ed9d.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_c78dbbcb-a211-4a29-a00c-4d5b38076557.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_d01a006b-7000-46c2-8826-6ad6a1599794.mp4" />
+    <Content Include="Content\UploadFiles\products\LG_da1f90ff-8e8d-476d-902c-770eb5117acc.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_dafc2f18-b996-4c2b-b196-d9cee53c7dba.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_e04214f0-f5eb-4887-87b0-7b37f222792a.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_e60f37a1-af21-4a92-bd5a-357fa7bca910.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_eb56bc87-2d46-4434-9635-4e9500c8d9f7.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_f2e66d5e-2e89-412d-b51b-73320b9b752b.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_f58a97a6-fed9-4bfc-be02-fadcd26ac201.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_fd0dcf8b-0c60-4a7a-8422-3dc7efd08a31.jpg" />
+    <Content Include="Content\UploadFiles\products\LG_fdbb4c93-4022-4a74-bea5-6396886e806f.jpg" />
+    <Content Include="Content\UploadFiles\products\MD_18e5eb06-f892-42b8-91bd-63025ae0a500.jpg" />
+    <Content Include="Content\UploadFiles\products\MD_426b1c3b-a8d1-4d31-a392-901d46092742.jpg" />
+    <Content Include="Content\UploadFiles\products\MD_564247ea-19e5-4402-a8ff-3c17ea32223b.jpg" />
+    <Content Include="Content\UploadFiles\products\MD_61b22030-349c-4a68-898b-51430c3a29db.jpg" />
+    <Content Include="Content\UploadFiles\products\MD_83a5c7bd-60e0-4ab9-8b13-4932d32da6c2.jpg" />
+    <Content Include="Content\UploadFiles\products\MD_89d54d34-e24b-4744-93b4-53fe9deb2d28.jpg" />
+    <Content Include="Content\UploadFiles\products\MD_91593d12-4c05-48f4-9798-ee64df29d71a.jpg" />
+    <Content Include="Content\UploadFiles\products\MD_a3f7f89d-6e18-4628-a50a-eb639d29999b.jpg" />
+    <Content Include="Content\UploadFiles\products\MD_dafc2f18-b996-4c2b-b196-d9cee53c7dba.jpg" />
+    <Content Include="Content\UploadFiles\products\MD_f2e66d5e-2e89-412d-b51b-73320b9b752b.jpg" />
+    <Content Include="Content\UploadFiles\products\SM_18e5eb06-f892-42b8-91bd-63025ae0a500.jpg" />
+    <Content Include="Content\UploadFiles\products\SM_426b1c3b-a8d1-4d31-a392-901d46092742.jpg" />
+    <Content Include="Content\UploadFiles\products\SM_564247ea-19e5-4402-a8ff-3c17ea32223b.jpg" />
+    <Content Include="Content\UploadFiles\products\SM_61b22030-349c-4a68-898b-51430c3a29db.jpg" />
+    <Content Include="Content\UploadFiles\products\SM_83a5c7bd-60e0-4ab9-8b13-4932d32da6c2.jpg" />
+    <Content Include="Content\UploadFiles\products\SM_89d54d34-e24b-4744-93b4-53fe9deb2d28.jpg" />
+    <Content Include="Content\UploadFiles\products\SM_91593d12-4c05-48f4-9798-ee64df29d71a.jpg" />
+    <Content Include="Content\UploadFiles\products\SM_a3f7f89d-6e18-4628-a50a-eb639d29999b.jpg" />
+    <Content Include="Content\UploadFiles\products\SM_dafc2f18-b996-4c2b-b196-d9cee53c7dba.jpg" />
+    <Content Include="Content\UploadFiles\products\SM_f2e66d5e-2e89-412d-b51b-73320b9b752b.jpg" />
+    <Content Include="Content\UploadFiles\products\XS_18e5eb06-f892-42b8-91bd-63025ae0a500.jpg" />
+    <Content Include="Content\UploadFiles\products\XS_426b1c3b-a8d1-4d31-a392-901d46092742.jpg" />
+    <Content Include="Content\UploadFiles\products\XS_564247ea-19e5-4402-a8ff-3c17ea32223b.jpg" />
+    <Content Include="Content\UploadFiles\products\XS_61b22030-349c-4a68-898b-51430c3a29db.jpg" />
+    <Content Include="Content\UploadFiles\products\XS_83a5c7bd-60e0-4ab9-8b13-4932d32da6c2.jpg" />
+    <Content Include="Content\UploadFiles\products\XS_89d54d34-e24b-4744-93b4-53fe9deb2d28.jpg" />
+    <Content Include="Content\UploadFiles\products\XS_91593d12-4c05-48f4-9798-ee64df29d71a.jpg" />
+    <Content Include="Content\UploadFiles\products\XS_a3f7f89d-6e18-4628-a50a-eb639d29999b.jpg" />
+    <Content Include="Content\UploadFiles\products\XS_dafc2f18-b996-4c2b-b196-d9cee53c7dba.jpg" />
+    <Content Include="Content\UploadFiles\products\XS_f2e66d5e-2e89-412d-b51b-73320b9b752b.jpg" />
+    <Content Include="Content\Xml\Data.xml" />
+    <Content Include="Content\Xml\Theme.xml" />
+    <Content Include="lib\microsoft\signalr\dist\browser\signalr.js" />
+    <Content Include="lib\microsoft\signalr\dist\browser\signalr.min.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\AbortController.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\AccessTokenHttpClient.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\browser-index.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\DefaultHttpClient.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\DefaultReconnectPolicy.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\Errors.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\FetchHttpClient.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\HandshakeProtocol.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\HeaderNames.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\HttpClient.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\HttpConnection.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\HubConnection.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\HubConnectionBuilder.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\IConnection.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\IHttpConnectionOptions.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\IHubProtocol.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\ILogger.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\index.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\IRetryPolicy.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\ITransport.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\JsonHubProtocol.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\Loggers.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\LongPollingTransport.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\Polyfills.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\ServerSentEventsTransport.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\Stream.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\Subject.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\TextMessageFormat.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\Utils.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\WebSocketTransport.js" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\XhrHttpClient.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\AbortController.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\AccessTokenHttpClient.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\browser-index.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\DefaultHttpClient.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\DefaultReconnectPolicy.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\Errors.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\FetchHttpClient.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\HandshakeProtocol.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\HeaderNames.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\HttpClient.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\HttpConnection.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\HubConnection.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\HubConnectionBuilder.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\IConnection.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\IHttpConnectionOptions.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\IHubProtocol.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\ILogger.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\index.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\IRetryPolicy.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\ITransport.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\JsonHubProtocol.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\Loggers.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\LongPollingTransport.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\Polyfills.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\ServerSentEventsTransport.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\Stream.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\Subject.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\TextMessageFormat.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\Utils.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\WebSocketTransport.js" />
+    <Content Include="lib\microsoft\signalr\dist\esm\XhrHttpClient.js" />
+    <Content Include="lib\microsoft\signalr\dist\webworker\signalr.js" />
+    <Content Include="lib\microsoft\signalr\dist\webworker\signalr.min.js" />
+    <Content Include="lib\microsoft\signalr\src\third-party-notices.txt" />
+    <Content Include="raw-theme\Index.html" />
+    <None Include="bundleconfig.json" />
+    <Content Include="bundleconfig.json.bindings">
+      <DependentUpon>bundleconfig.json</DependentUpon>
+    </Content>
+    <Content Include="fonts\fa-brands-400.svg" />
+    <Content Include="fonts\fa-regular-400.svg" />
+    <Content Include="fonts\fa-solid-900.svg" />
+    <Content Include="fonts\Flaticon.svg" />
+    <Content Include="fonts\fontawesome-webfont.svg" />
+    <Content Include="fonts\ionicons.svg" />
+    <Content Include="fonts\Linearicons.svg" />
+    <Content Include="fonts\Simple-Line-Icons.svg" />
+    <Content Include="fonts\themify.svg" />
+    <Content Include="fonts\universltstdboldcn.svg" />
+    <Content Include="fonts\YEKAN.SVG" />
+    <Content Include="HtmlPage1.html" />
+    <Content Include="Localization\ar.xml" />
+    <Content Include="Localization\be.xml" />
+    <Content Include="Localization\bg.xml" />
+    <Content Include="Localization\bh.xml" />
+    <Content Include="Localization\ca-ES.xml" />
+    <Content Include="Localization\cs.xml" />
+    <Content Include="Localization\de.xml" />
+    <Content Include="Localization\el-GR.xml" />
+    <Content Include="Localization\en-GB.xml" />
+    <Content Include="Localization\en.xml" />
+    <Content Include="Localization\es.xml" />
+    <Content Include="Localization\eu-ES.xml" />
+    <Content Include="Localization\fa.xml" />
+    <Content Include="Localization\fr.xml" />
+    <Content Include="Localization\gl-ES.xml" />
+    <Content Include="Localization\hr.xml" />
+    <Content Include="Localization\hu.xml" />
+    <Content Include="Localization\id.xml" />
+    <Content Include="Localization\it.xml" />
+    <Content Include="Localization\ja.xml" />
+    <Content Include="Localization\ka.xml" />
+    <Content Include="Localization\ko.xml" />
+    <Content Include="Localization\lt.xml" />
+    <Content Include="Localization\nb-NO.xml" />
+    <Content Include="Localization\nl.xml" />
+    <Content Include="Localization\pl.xml" />
+    <Content Include="Localization\pt-BR.xml" />
+    <Content Include="Localization\pt.xml" />
+    <Content Include="Localization\ro.xml" />
+    <Content Include="Localization\ru.xml" />
+    <Content Include="Localization\sk.xml" />
+    <Content Include="Localization\sr.xml" />
+    <Content Include="Localization\sv.xml" />
+    <Content Include="Localization\tr.xml" />
+    <Content Include="Localization\uk.xml" />
+    <Content Include="Localization\vi.xml" />
+    <Content Include="Localization\zh-CHS.xml" />
+    <Content Include="Localization\zh-CHT.xml" />
+    <Content Include="favicon.ico" />
+    <Content Include="fonts\glyphicons-halflings-regular.svg" />
+    <Content Include="Global.asax" />
+    <Content Include="ApplicationInsights.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="fonts\IranNastaliq\eot\IRANSansWeb.eot" />
+    <Content Include="fonts\IranNastaliq\eot\IRANSansWeb_Bold.eot" />
+    <Content Include="fonts\IranNastaliq\eot\IRANSansWeb_Light.eot" />
+    <Content Include="fonts\IranNastaliq\eot\IRANSansWeb_Medium.eot" />
+    <Content Include="fonts\IranNastaliq\eot\IRANSansWeb_UltraLight.eot" />
+    <Content Include="fonts\IranNastaliq\ttf\IRANSansWeb.ttf" />
+    <Content Include="fonts\IranNastaliq\ttf\IRANSansWeb_Bold.ttf" />
+    <Content Include="fonts\IranNastaliq\ttf\IRANSansWeb_Light.ttf" />
+    <Content Include="fonts\IranNastaliq\ttf\IRANSansWeb_Medium.ttf" />
+    <Content Include="fonts\IranNastaliq\ttf\IRANSansWeb_UltraLight.ttf" />
+    <Content Include="fonts\IranNastaliq\woff\IRANSansWeb.woff" />
+    <Content Include="fonts\IranNastaliq\woff\IRANSansWeb_Bold.woff" />
+    <Content Include="fonts\IranNastaliq\woff\IRANSansWeb_Light.woff" />
+    <Content Include="fonts\IranNastaliq\woff\IRANSansWeb_Medium.woff" />
+    <Content Include="fonts\IranNastaliq\woff\IRANSansWeb_UltraLight.woff" />
+    <Content Include="fonts\IranNastaliq\woff2\IRANSansWeb.woff2" />
+    <Content Include="fonts\IranNastaliq\woff2\IRANSansWeb_Bold.woff2" />
+    <Content Include="fonts\IranNastaliq\woff2\IRANSansWeb_Light.woff2" />
+    <Content Include="fonts\IranNastaliq\woff2\IRANSansWeb_Medium.woff2" />
+    <Content Include="fonts\IranNastaliq\woff2\IRANSansWeb_UltraLight.woff2" />
+    <Content Include="fonts\universltstdboldcn.eot" />
+    <Content Include="fonts\universltstdboldcn.ttf" />
+    <Content Include="fonts\universltstdboldcn.woff" />
+    <Content Include="fonts\universltstdboldcn.woff2" />
+    <Content Include="fonts\YEKAN.EOT" />
+    <Content Include="fonts\YEKAN.TTF" />
+    <Content Include="fonts\Yekan.woff" />
+    <Content Include="Models\DataClasses1.dbml">
+      <Generator>MSLinqToSQLGenerator</Generator>
+      <LastGenOutput>DataClasses1.designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Content\Reports\FactorReport.mrt" />
+    <Content Include="Content\Reports\labelReport0.mrt" />
+    <Content Include="Content\Reports\labelReport1.mrt" />
+    <Content Include="Content\Reports\labelReport2.mrt" />
+    <Content Include="Content\Reports\labelReport3.mrt" />
+    <Content Include="Content\Reports\labelReport4.mrt" />
+    <Content Include="Content\Reports\labelReport5.mrt" />
+    <Content Include="Content\Reports\labelReport6.mrt" />
+    <Content Include="fonts\fa-brands-400.eot" />
+    <Content Include="fonts\fa-brands-400.ttf" />
+    <Content Include="fonts\fa-brands-400.woff" />
+    <Content Include="fonts\fa-brands-400.woff2" />
+    <Content Include="fonts\fa-regular-400.eot" />
+    <Content Include="fonts\fa-regular-400.ttf" />
+    <Content Include="fonts\fa-regular-400.woff" />
+    <Content Include="fonts\fa-regular-400.woff2" />
+    <Content Include="fonts\fa-solid-900.eot" />
+    <Content Include="fonts\fa-solid-900.ttf" />
+    <Content Include="fonts\fa-solid-900.woff" />
+    <Content Include="fonts\fa-solid-900.woff2" />
+    <Content Include="fonts\Flaticon.eot" />
+    <Content Include="fonts\Flaticon.ttf" />
+    <Content Include="fonts\Flaticon.woff" />
+    <Content Include="fonts\Flaticon.woff2" />
+    <Content Include="fonts\fontawesome-webfont.eot" />
+    <Content Include="fonts\fontawesome-webfont.ttf" />
+    <Content Include="fonts\fontawesome-webfont.woff" />
+    <Content Include="fonts\fontawesome-webfont.woff2" />
+    <Content Include="fonts\ionicons.eot" />
+    <Content Include="fonts\ionicons.ttf" />
+    <Content Include="fonts\ionicons.woff" />
+    <Content Include="fonts\Linearicons.eot" />
+    <Content Include="fonts\Linearicons.ttf" />
+    <Content Include="fonts\Linearicons.woff" />
+    <Content Include="fonts\Simple-Line-Icons.eot" />
+    <Content Include="fonts\Simple-Line-Icons.ttf" />
+    <Content Include="fonts\Simple-Line-Icons.woff" />
+    <Content Include="fonts\Simple-Line-Icons.woff2" />
+    <Content Include="fonts\themify.eot" />
+    <Content Include="fonts\themify.ttf" />
+    <Content Include="fonts\themify.woff" />
+    <Content Include="fonts\BNAZANIN.TTF" />
+    <Content Include="libman.json" />
+    <Content Include="lib\microsoft\signalr\dist\browser\signalr.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\browser\signalr.min.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\AbortController.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\AccessTokenHttpClient.js.map" />
+    <Content Include="lib\microsoft\signalr\package.json" />
+    <Content Include="lib\microsoft\signalr\README.md" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\DefaultHttpClient.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\DefaultReconnectPolicy.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\Errors.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\FetchHttpClient.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\HandshakeProtocol.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\HeaderNames.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\HttpClient.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\HttpConnection.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\HubConnection.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\HubConnectionBuilder.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\IConnection.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\IHttpConnectionOptions.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\IHubProtocol.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\ILogger.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\IRetryPolicy.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\ITransport.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\JsonHubProtocol.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\Loggers.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\LongPollingTransport.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\Polyfills.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\ServerSentEventsTransport.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\Stream.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\Subject.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\TextMessageFormat.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\Utils.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\browser-index.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\index.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\WebSocketTransport.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\cjs\XhrHttpClient.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\AbortController.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\AccessTokenHttpClient.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\DefaultHttpClient.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\DefaultReconnectPolicy.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\Errors.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\FetchHttpClient.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\HandshakeProtocol.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\HeaderNames.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\HttpClient.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\HttpConnection.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\HubConnection.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\HubConnectionBuilder.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\IConnection.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\IHttpConnectionOptions.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\IHubProtocol.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\ILogger.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\IRetryPolicy.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\ITransport.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\JsonHubProtocol.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\Loggers.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\LongPollingTransport.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\Polyfills.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\ServerSentEventsTransport.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\Stream.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\Subject.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\TextMessageFormat.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\Utils.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\browser-index.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\WebSocketTransport.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\XhrHttpClient.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\esm\index.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\webworker\signalr.js.map" />
+    <Content Include="lib\microsoft\signalr\dist\webworker\signalr.min.js.map" />
+    <Content Include="Content\UploadFiles\offers\LG_ab86c88b-97cf-4f5d-9b69-d645e4ec3e3d.webp" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Content Include="Web References\ir.shaparak.sep1\Reference.map">
+      <Generator>MSDiscoCodeGenerator</Generator>
+      <LastGenOutput>Reference.cs</LastGenOutput>
+    </Content>
+    <Content Include="Views\home\Index.cshtml" />
+    <Content Include="Views\Shared\_Layout.cshtml" />
+    <None Include="Web References\ir.shaparak.sep1\referencepayment.wsdl" />
+    <None Include="Web References\ir.shaparak.sep\initpayment.disco" />
+    <None Include="Web References\ir.shaparak.sep1\referencepayment.disco" />
+    <Content Include="Web.config">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Web.Debug.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </Content>
+    <Content Include="Web.Release.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </Content>
+    <Content Include="Views\Web.config" />
+    <Content Include="Views\_ViewStart.cshtml" />
+    <Content Include="Views\Shared\_AttachmentBulk.cshtml" />
+    <Content Include="Views\Shared\_AttachmentBulkSimple.cshtml" />
+    <Content Include="Views\Shared\_AttachmentJanebi.cshtml" />
+    <Content Include="Views\Shared\_Email.cshtml" />
+    <None Include="Web References\com.zarinpal.ir\PaymentGatewayImplementationService.wsdl" />
+    <Content Include="Web References\com.zarinpal.ir\Reference.map">
+      <Generator>MSDiscoCodeGenerator</Generator>
+      <LastGenOutput>Reference.cs</LastGenOutput>
+    </Content>
+    <Content Include="Web References\NiksmsWebservice\GetReceiveSmsModel.datasource">
+      <DependentUpon>Reference.map</DependentUpon>
+    </Content>
+    <Content Include="Web References\NiksmsWebservice\GetSmsDeliveryWithClientIdModel.datasource">
+      <DependentUpon>Reference.map</DependentUpon>
+    </Content>
+    <None Include="Web References\ir.shaparak.bpm\IPaymentGateway.wsdl" />
+    <None Include="Web References\ir.shaparak.bpm\PaymentGatewayImplService.wsdl" />
+    <None Include="Web References\ir.shaparak.bpm\Reference.map">
+      <Generator>MSDiscoCodeGenerator</Generator>
+      <LastGenOutput>Reference.cs</LastGenOutput>
+    </None>
+    <None Include="Web References\ir.shaparak.sep\initpayment.wsdl" />
+    <Content Include="Web References\ir.shaparak.sep\Reference.map">
+      <Generator>MSDiscoCodeGenerator</Generator>
+      <LastGenOutput>Reference.cs</LastGenOutput>
+    </Content>
+    <None Include="Web References\NiksmsWebservice\NiksmsWebservice.wsdl" />
+    <None Include="Web References\NiksmsWebservice\NiksmsWebservice.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <Content Include="Web References\NiksmsWebservice\Reference.map">
+      <Generator>MSDiscoCodeGenerator</Generator>
+      <LastGenOutput>Reference.cs</LastGenOutput>
+    </Content>
+    <Content Include="Web References\NiksmsWebservice\ReturnSmsResult.datasource">
+      <DependentUpon>Reference.map</DependentUpon>
+    </Content>
+    <Content Include="Web References\NiksmsWebservice\SmsStatus.datasource">
+      <DependentUpon>Reference.map</DependentUpon>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Content\UploadFiles\Contents\" />
+    <Folder Include="Content\UploadFiles\NewFolder1\" />
+    <Folder Include="Content\UploadFiles\NewFolder2\" />
+    <Folder Include="Content\UploadFiles\productquestions\" />
+    <Folder Include="Content\UploadFiles\SmartCampaign\" />
+    <Folder Include="Dapper\" />
+    <Folder Include="Scripts\tinymce\plugins\layer\" />
+    <Folder Include="Views\blog\" />
+    <Folder Include="Views\Index\" />
+    <Folder Include="Views\Thumbnail\" />
+    <Folder Include="Views\XML\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="fonts\glyphicons-halflings-regular.woff" />
+    <Content Include="fonts\glyphicons-halflings-regular.ttf" />
+    <Content Include="fonts\glyphicons-halflings-regular.eot" />
+    <Content Include="packages.config" />
+    <None Include="Project_Readme.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CoreLib\CoreLib.csproj">
+      <Project>{86dc47be-28a6-4d0d-8847-8a4d5266d376}</Project>
+      <Name>CoreLib</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DataLayer\DataLayer.csproj">
+      <Project>{d209f761-44aa-481a-93e1-d716b8998f57}</Project>
+      <Name>DataLayer</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Domain\Domain.csproj">
+      <Project>{91b328c0-c63b-43e5-8f67-faed50986092}</Project>
+      <Name>Domain</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Repository\Repository.csproj">
+      <Project>{daf394c7-e338-4262-a118-e70109f255e1}</Project>
+      <Name>Repository</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\UnitOfWork\UnitOfWork.csproj">
+      <Project>{ba0db946-ad8f-4619-a6ff-b8f4cf7f2ec5}</Project>
+      <Name>UnitOfWork</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
+  </ItemGroup>
+  <ItemGroup>
+    <WebReferences Include="Web References\" />
+  </ItemGroup>
+  <ItemGroup>
+    <WebReferenceUrl Include="http://94.182.154.28:1370/NiksmsWebservice.svc%3fwsdl">
+      <UrlBehavior>Dynamic</UrlBehavior>
+      <RelPath>Web References\NiksmsWebservice\</RelPath>
+      <UpdateFromURL>http://94.182.154.28:1370/NiksmsWebservice.svc%3fwsdl</UpdateFromURL>
+      <ServiceLocationURL>
+      </ServiceLocationURL>
+      <CachedDynamicPropName>
+      </CachedDynamicPropName>
+      <CachedAppSettingsObjectName>Settings</CachedAppSettingsObjectName>
+      <CachedSettingsPropName>ShopCMS_NiksmsWebservice_NiksmsWebservice</CachedSettingsPropName>
+    </WebReferenceUrl>
+    <WebReferenceUrl Include="https://bpm.shaparak.ir/pgwchannel/services/pgw%3fwsdl">
+      <UrlBehavior>Dynamic</UrlBehavior>
+      <RelPath>Web References\ir.shaparak.bpm\</RelPath>
+      <UpdateFromURL>https://bpm.shaparak.ir/pgwchannel/services/pgw%3fwsdl</UpdateFromURL>
+      <ServiceLocationURL>
+      </ServiceLocationURL>
+      <CachedDynamicPropName>
+      </CachedDynamicPropName>
+      <CachedAppSettingsObjectName>Settings</CachedAppSettingsObjectName>
+      <CachedSettingsPropName>TfShop_ir_shaparak_bpm_PaymentGatewayImplService</CachedSettingsPropName>
+    </WebReferenceUrl>
+    <WebReferenceUrl Include="https://ir.zarinpal.com/pg/services/WebGate/wsdl">
+      <UrlBehavior>Dynamic</UrlBehavior>
+      <RelPath>Web References\com.zarinpal.ir\</RelPath>
+      <UpdateFromURL>https://ir.zarinpal.com/pg/services/WebGate/wsdl</UpdateFromURL>
+      <ServiceLocationURL>
+      </ServiceLocationURL>
+      <CachedDynamicPropName>
+      </CachedDynamicPropName>
+      <CachedAppSettingsObjectName>Settings</CachedAppSettingsObjectName>
+      <CachedSettingsPropName>ShopCMS_com_zarinpal_ir_PaymentGatewayImplementationService</CachedSettingsPropName>
+    </WebReferenceUrl>
+    <WebReferenceUrl Include="https://sep.shaparak.ir/payments/initpayment.asmx">
+      <UrlBehavior>Dynamic</UrlBehavior>
+      <RelPath>Web References\ir.shaparak.sep\</RelPath>
+      <UpdateFromURL>https://sep.shaparak.ir/payments/initpayment.asmx</UpdateFromURL>
+      <ServiceLocationURL>
+      </ServiceLocationURL>
+      <CachedDynamicPropName>
+      </CachedDynamicPropName>
+      <CachedAppSettingsObjectName>Settings</CachedAppSettingsObjectName>
+      <CachedSettingsPropName>TfShop_ir_shaparak_sep_PaymentIFBinding</CachedSettingsPropName>
+    </WebReferenceUrl>
+    <WebReferenceUrl Include="https://sep.shaparak.ir/payments/referencepayment.asmx">
+      <UrlBehavior>Dynamic</UrlBehavior>
+      <RelPath>Web References\ir.shaparak.sep1\</RelPath>
+      <UpdateFromURL>https://sep.shaparak.ir/payments/referencepayment.asmx</UpdateFromURL>
+      <ServiceLocationURL>
+      </ServiceLocationURL>
+      <CachedDynamicPropName>
+      </CachedDynamicPropName>
+      <CachedAppSettingsObjectName>Settings</CachedAppSettingsObjectName>
+      <CachedSettingsPropName>TfShop_ir_shaparak_sep1_PaymentIFBinding</CachedSettingsPropName>
+    </WebReferenceUrl>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{3259AA49-8AA1-44D3-9025-A0B520596A8C}" />
+    <Service Include="{4A0DDDB5-7A95-4FBF-97CC-616D07737A77}" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Models\DataClasses1.dbml.layout">
+      <DependentUpon>DataClasses1.dbml</DependentUpon>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\AbortController.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\AccessTokenHttpClient.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\browser-index.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\DefaultHttpClient.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\DefaultReconnectPolicy.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\Errors.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\FetchHttpClient.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\HandshakeProtocol.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\HeaderNames.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\HttpClient.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\HttpConnection.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\HubConnection.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\HubConnectionBuilder.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\IConnection.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\IHttpConnectionOptions.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\IHubProtocol.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\ILogger.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\index.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\IRetryPolicy.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\ITransport.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\JsonHubProtocol.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\Loggers.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\LongPollingTransport.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\Polyfills.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\ServerSentEventsTransport.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\Stream.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\Subject.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\TextMessageFormat.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\Utils.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\WebSocketTransport.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\dist\esm\XhrHttpClient.d.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\AbortController.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\AccessTokenHttpClient.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\browser-index.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\DefaultHttpClient.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\DefaultReconnectPolicy.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\Errors.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\FetchHttpClient.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\HandshakeProtocol.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\HeaderNames.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\HttpClient.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\HttpConnection.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\HubConnection.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\HubConnectionBuilder.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\IConnection.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\IHttpConnectionOptions.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\IHubProtocol.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\ILogger.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\index.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\IRetryPolicy.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\ITransport.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\JsonHubProtocol.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\Loggers.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\LongPollingTransport.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\Polyfills.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\ServerSentEventsTransport.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\Stream.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\Subject.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\TextMessageFormat.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\Utils.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\WebSocketTransport.ts" />
+    <TypeScriptCompile Include="lib\microsoft\signalr\src\XhrHttpClient.ts" />
+  </ItemGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets')" />
+  <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
+  <Target Name="MvcBuildViews" AfterTargets="AfterBuild" Condition="'$(MvcBuildViews)'=='true'">
+    <AspNetCompiler VirtualPath="temp" PhysicalPath="$(WebProjectOutputDir)" />
+  </Target>
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <UseIIS>True</UseIIS>
+          <AutoAssignPort>True</AutoAssignPort>
+          <DevelopmentServerPort>23091</DevelopmentServerPort>
+          <DevelopmentServerVPath>/</DevelopmentServerVPath>
+          <IISUrl>http://localhost:23091/</IISUrl>
+          <NTLMAuthentication>False</NTLMAuthentication>
+          <UseCustomServer>False</UseCustomServer>
+          <CustomServerUrl>
+          </CustomServerUrl>
+          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Microsoft.Net.Compilers.3.5.0\build\Microsoft.Net.Compilers.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Net.Compilers.1.0.0\build\Microsoft.Net.Compilers.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.2.0.1\build\net46\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.2.0.1\build\net46\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props'))" />
+    <Error Condition="!Exists('..\packages\BuildBundlerMinifier.3.2.449\build\BuildBundlerMinifier.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\BuildBundlerMinifier.3.2.449\build\BuildBundlerMinifier.targets'))" />
+  </Target>
+  <Target Name="CopyRoslynFiles" AfterTargets="AfterBuild" Condition="!$(Disable_CopyWebApplication) And '$(OutDir)' != '$(OutputPath)'">
+    <ItemGroup>
+      <RoslynFiles Include="$(CscToolPath)\*" />
+    </ItemGroup>
+    <MakeDir Directories="$(WebProjectOutputDir)\bin\roslyn" />
+    <Copy SourceFiles="@(RoslynFiles)" DestinationFolder="$(WebProjectOutputDir)\bin\roslyn" SkipUnchangedFiles="true" Retries="$(CopyRetryCount)" RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)" />
+  </Target>
+  <Import Project="..\packages\BuildBundlerMinifier.3.2.449\build\BuildBundlerMinifier.targets" Condition="Exists('..\packages\BuildBundlerMinifier.3.2.449\build\BuildBundlerMinifier.targets')" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target> -->
+</Project>

@@ -1,0 +1,346 @@
+[
+  {
+    "outputFileName": "Content/base/theme/css/mainbundle.css",
+    "inputFiles": [
+      //"Content/Base/theme/css/font.css",
+      "Content/Base/theme/css/main.css",
+      "Content/Base/theme/css/master.css",
+      "Content/Base/theme/css/bootstrap-modal.min.css",
+      "Content/Base/Css/owl.carousel.min.css",
+      "Content/Base/Css/owl.theme.css",
+      "Content/Base/Css/owl.theme.default.min.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/css/Indexbundle.css",
+    "inputFiles": [
+      "Content/Base/theme/Css/index.css",
+      "Content/Base/theme/Css/ProductBox.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/css/Brandbundle.css",
+    "inputFiles": [
+      "Content/Base/theme/Css/brand.css",
+      "Content/Base/theme/Css/Breadcrumb.css",
+      "Content/Base/theme/Css/ProductBox.css",
+      "Content/Base/theme/Css/ProductAdd.css",
+      "Content/Base/Scripts/switchery/dist/switchery.min.css",
+      "Content/Base/Scripts/Price-Range-Slider-jQuery-UI/jquery-ui.css",
+      "Content/Base/Scripts/Price-Range-Slider-jQuery-UI/price_range_style.css",
+      "Content/Base/Scripts/scroll/trackpad-scroll-emulator.css",
+      "Content/Base/Scripts/VideoPlayer/dist/mediaelementplayer.css",
+      "Content/Base/Scripts/VideoPlayer/dist/jump-forward/jump-forward.css",
+      "Content/Base/Scripts/VideoPlayer/dist/skip-back/skip-back.css",
+      "Content/Base/Scripts/VideoPlayer/dist/speed/speed.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/css/comparebundle.css",
+    "inputFiles": [
+      "Content/Base/theme/Css/compare.css",
+      "Content/Base/theme/Css/Breadcrumb.css",
+      "Content/Base/theme/Css/ProductBox.css",
+      "Content/Base/theme/Css/ProductAdd.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/css/ProductCategorybundle.css",
+    "inputFiles": [
+      "Content/Base/theme/Css/ProductCategory.css",
+      "Content/Base/theme/Css/Breadcrumb.css",
+      "Content/Base/theme/Css/ProductBox.css",
+      "Content/Base/theme/Css/ProductAdd.css",
+      "Content/Base/Scripts/scroll/trackpad-scroll-emulator.css",
+      "Content/Base/Scripts/VideoPlayer/dist/mediaelementplayer.css",
+      "Content/Base/Scripts/VideoPlayer/dist/jump-forward/jump-forward.css",
+      "Content/Base/Scripts/VideoPlayer/dist/skip-back/skip-back.css",
+      "Content/Base/Scripts/VideoPlayer/dist/speed/speed.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/css/SuperDealbundle.css",
+    "inputFiles": [
+      "Content/Base/theme/Css/SuperDeal.css",
+      "Content/Base/theme/Css/ProductBox.css",
+      "Content/Base/theme/Css/ProductAdd.css",
+      "Content/Base/theme/Css/dealTimer.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/css/ProductTagbundle.css",
+    "inputFiles": [
+      "Content/Base/theme/Css/ProductTag.css",
+      "Content/Base/theme/Css/ProductBox.css",
+      "Content/Base/theme/Css/ProductAdd.css",
+      "Content/Base/Scripts/switchery/dist/switchery.min.css",
+      "Content/Base/Scripts/Price-Range-Slider-jQuery-UI/jquery-ui.css",
+      "Content/Base/Scripts/Price-Range-Slider-jQuery-UI/price_range_style.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/css/ProductSearchbundle.css",
+    "inputFiles": [
+      "Content/Base/theme/Css/ProductSearch.css",
+      "Content/Base/theme/Css/Breadcrumb.css",
+      "Content/Base/theme/Css/ProductBox.css",
+      "Content/Base/theme/Css/ProductAdd.css",
+      "Content/Base/Scripts/switchery/dist/switchery.min.css",
+      "Content/Base/Scripts/Price-Range-Slider-jQuery-UI/jquery-ui.css",
+      "Content/Base/Scripts/Price-Range-Slider-jQuery-UI/price_range_style.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/css/Productbundle.css",
+    "inputFiles": [
+      "Content/Base/theme/Css/Product.css",
+      "Content/Base/theme/Css/Breadcrumb.css",
+      "Content/Base/theme/Css/ProductBox.css",
+      "Content/Base/theme/Css/ProductAdd.css",
+      "Content/Base/Scripts/LightBox/css/lightslider.min.css",
+      "Content/Base/Scripts/LightBox/css/lightgallery.min.css",
+      "Content/Base/Css/prcommentFont.css",
+      "Content/Base/Css/view/video-js.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/css/payindexbundle.css",
+    "inputFiles": [
+      "Content/Base/theme/Css/payindex.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/css/paybuybundle.css",
+    "inputFiles": [
+      "Content/Base/theme/Css/paybuy.css",
+      "Content/Base/Css/owl.carousel.min.css",
+      "Content/Base/Css/owl.theme.css",
+      "Content/Base/Css/owl.theme.default.min.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/css/paycardbundle.css",
+    "inputFiles": [
+      "Content/Base/theme/css/paycard.css",
+      "Content/Base/Scripts/sweetalert/sweetalert.css",
+      "Content/Base/Css/owl.carousel.min.css",
+      "Content/Base/Css/owl.theme.css",
+      "Content/Base/Css/owl.theme.default.min.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/css/Callbackbundle.css",
+    "inputFiles": [
+      "Content/Base/theme/css/BankPaymentCallBack.css",
+      "Content/Base/Scripts/sweetalert/sweetalert.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/Vendorbundle.js",
+    "inputFiles": [
+      "Content/Base/theme/js/jquery.min.js",
+      "Content/Base/theme/js/passive.js",
+      "Content/Base/theme/js/jquery-migrate.min.js",
+      "content/Base/scripts/owl.carousel.min.js",
+      "Content/Base/theme/js/bootstrap-transition.js",
+      "Content/Base/theme/js/bootstrap-modal.min.js",
+      "Content/Base/theme/js/lazysizes.min.js",
+      "content/Base/scripts/jquery.countdown.min.js",
+      "content/Base/Scripts/jquery.unobtrusive-ajax.js",
+      "content/Base/Scripts/jquery.validate.js",
+      "content/Base/Scripts/jquery.validate.unobtrusive.js",
+      "Content/Base/theme/js/master.js"
+
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/mainbundle.js",
+    "inputFiles": [
+      "Content/Base/theme/js/main.js"
+
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/Indexbundle.js",
+    "inputFiles": [
+      "Content/Base/theme/js/Index.js"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/Brandbundle.js",
+    "inputFiles": [
+      "Content/Base/Scripts/Price-Range-Slider-jQuery-UI/jquery-ui.min.js",
+      "Content/Base/Scripts/Price-Range-Slider-jQuery-UI/price_range_scriptv2.js",
+      "Content/Base/Scripts/switchery/dist/switchery.min.js",
+      "content/Base/Scripts/VideoPlayer/dist/mediaelement-and-player.min.js",
+      "content/Base/Scripts/VideoPlayer/dist/jump-forward/jump-forward.js",
+      "content/Base/Scripts/VideoPlayer/dist/skip-back/skip-back.js",
+      "content/Base/Scripts/VideoPlayer/dist/speed/speed.min.js",
+      "content/Base/Scripts/scroll/jquery.trackpad-scroll-emulator.min.js",
+      "Content/Base/Scripts/view/Brandv2.js"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/ProductCategorybundle.js",
+    "inputFiles": [
+      "content/Base/Scripts/VideoPlayer/dist/mediaelement-and-player.min.js",
+      "content/Base/Scripts/VideoPlayer/dist/jump-forward/jump-forward.js",
+      "content/Base/Scripts/VideoPlayer/dist/skip-back/skip-back.js",
+      "content/Base/Scripts/VideoPlayer/dist/speed/speed.min.js",
+      "content/Base/Scripts/scroll/jquery.trackpad-scroll-emulator.min.js",
+      "/Content/Base/Scripts/view/ProductCategoryv2.js"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/ProductTagbundle.js",
+    "inputFiles": [
+      "Content/Base/Scripts/Price-Range-Slider-jQuery-UI/jquery-ui.min.js",
+      "Content/Base/Scripts/Price-Range-Slider-jQuery-UI/price_range_scriptv2.js",
+      "Content/Base/Scripts/switchery/dist/switchery.min.js",
+      "content/Base/Scripts/VideoPlayer/dist/mediaelement-and-player.min.js",
+      "content/Base/Scripts/VideoPlayer/dist/jump-forward/jump-forward.js",
+      "content/Base/Scripts/VideoPlayer/dist/skip-back/skip-back.js",
+      "content/Base/Scripts/VideoPlayer/dist/speed/speed.min.js",
+      "content/Base/Scripts/scroll/jquery.trackpad-scroll-emulator.min.js",
+      "Content/Base/Scripts/view/PTagv2.js"
+
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/Productbundle.js",
+    "inputFiles": [
+      "Content/Base/Scripts/view/video.js",
+      "Content/Base/Scripts/LightBox/js/lightslider.js",
+      "Content/Base/Scripts/LightBox/js/lightgallery-all.min.js",
+      "Content/Base/Scripts/LightBox/picturefill.min.js",
+      "Content/Base/Scripts/LightBox/jquery.mousewheel.min.js",
+      "Content/Base/Scripts/persianNumber.js",
+      "Content/Base/Scripts/view/Product.js",
+      "Content/Base/Scripts/View/_Question.js"
+
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/ProductSearchbundle.js",
+    "inputFiles": [
+      "Content/Base/Scripts/Price-Range-Slider-jQuery-UI/jquery-ui.min.js",
+      "Content/Base/Scripts/Price-Range-Slider-jQuery-UI/price_range_scriptv2.js",
+      "Content/Base/Scripts/switchery/dist/switchery.min.js",
+      "content/Base/Scripts/VideoPlayer/dist/mediaelement-and-player.min.js",
+      "content/Base/Scripts/VideoPlayer/dist/jump-forward/jump-forward.js",
+      "content/Base/Scripts/VideoPlayer/dist/skip-back/skip-back.js",
+      "content/Base/Scripts/VideoPlayer/dist/speed/speed.min.js",
+      "content/Base/Scripts/scroll/jquery.trackpad-scroll-emulator.min.js",
+      "Content/Base/Scripts/view/ProductCategoryv2.js",
+      "Content/Base/Scripts/view/ProductSearchV2.js"
+
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/PayIndexbundle.js",
+    "inputFiles": [
+      "Content/Base/Scripts/view/payindex.js"
+
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/PayCardbundle.js",
+    "inputFiles": [
+      "content/Base/scripts/owl.carousel.min.js",
+      "content/Base/Scripts/sweetalert/sweetalert.min.js",
+      "Content/Base/Scripts/view/paycard.js"
+
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/PayBuybundle.js",
+    "inputFiles": [
+      "content/Base/scripts/owl.carousel.min.js",
+      "Content/Base/Scripts/view/paybuy.js"
+
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/callbackbundle.js",
+    "inputFiles": [
+      "content/Base/Scripts/sweetalert/sweetalert.min.js",
+      "Content/Base/Scripts/view/BankPaymentCallBack.js"
+
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/Comparebundle.js",
+    "inputFiles": [
+      "Content/Base/scripts/view/Comparev2.js"
+    ]
+  },
+  {
+    "outputFileName": "Content/base/theme/js/SuperDealbundle.js",
+    "inputFiles": [
+      "Content/Base/Scripts/scroll/dragscrollablev2.js",
+      "Content/Base/Scripts/view/SuperDealv2.js"
+    ]
+  },
+  {
+    "outputFileName": "Content/Default/bundle.css",
+    "inputFiles": [
+      "Content/Base/Scripts/sweetalert/sweetalert.css",
+      "Content/Base/Css/animate.min.css",
+      "Content/Base/Css/bootstrap.min.css",
+      "Content/Base/Css/owl.carousel.min.css",
+      "Content/Base/Css/owl.theme.css",
+      "Content/Base/Css/owl.theme.default.min.css",
+      "Content/Base/Css/magnific-popup.css",
+      "Content/Base/Css/slick.css",
+      "Content/Base/Css/slick-theme.css",
+      "Content/Base/Css/style.css",
+      "Content/Base/Css/responsive.css",
+      "Content/Base/Scripts/scroll/trackpad-scroll-emulator.css",
+      "Content/Base/Scripts/VideoPlayer/dist/mediaelementplayer.css",
+      "Content/Base/Scripts/VideoPlayer/dist/jump-forward/jump-forward.css",
+      "Content/Base/Scripts/VideoPlayer/dist/skip-back/skip-back.css",
+      "Content/Base/Scripts/VideoPlayer/dist/speed/speed.css",
+      "Content/Default/Site.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/Base/Css/Fonts.min.css",
+    "inputFiles": [
+      "Content/Base/Css/Fonts.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/Base/Scripts/bundle.js",
+    "inputFiles": [
+      "Content/Base/Scripts/jquery-1.12.4.min.js",
+      "Content/Base/Scripts/popper.min.js",
+      "Content/Base/Scripts/bootstrap.min.js",
+      "content/Base/scripts/owl.carousel.min.js",
+      "content/Base/scripts/magnific-popup.min.js",
+      "content/Base/scripts/waypoints.min.js",
+      "content/Base/scripts/parallax.js",
+      "content/Base/scripts/jquery.countdown.min.js",
+      "content/Base/scripts/Hoverparallax.min.js",
+      "content/Base/scripts/jquery.countTo.js",
+      "content/Base/scripts/imagesloaded.pkgd.min.js",
+      "content/Base/scripts/isotope.min.js",
+      "content/Base/scripts/jquery.appear.js",
+      "content/Base/scripts/jquery.parallax-scroll.js",
+      "content/Base/scripts/jquery.dd.min.js",
+      "content/Base/scripts/slick.min.js",
+      "content/Base/scripts/jquery.elevatezoom.js",
+      "content/Base/Scripts/sweetalert/sweetalert.min.js",
+      "content/Base/Scripts/VideoPlayer/dist/mediaelement-and-player.min.js",
+      "content/Base/Scripts/VideoPlayer/dist/jump-forward/jump-forward.js",
+      "content/Base/Scripts/VideoPlayer/dist/skip-back/skip-back.js",
+      "content/Base/Scripts/VideoPlayer/dist/speed/speed.min.js",
+      "content/Base/Scripts/scroll/jquery.trackpad-scroll-emulator.min.js",
+      "Content/Base/Scripts/jquery.lazyload.js",
+      "content/Base/scripts/scripts.js",
+      "content/Base/Scripts/jquery.unobtrusive-ajax.js",
+      "content/Base/Scripts/jquery.validate.js",
+      "content/Base/Scripts/jquery.validate.unobtrusive.js",
+      "Content/Base/Scripts/View/_JoinNewsletter.js"
+    ]
+  }
+]

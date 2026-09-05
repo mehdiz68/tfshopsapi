@@ -1,0 +1,423 @@
+﻿<?xml version="1.0" encoding="utf-8"?><Database Name="db_shop" Class="DataClasses1DataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
+  <Connection Mode="WebSettings" ConnectionString="Data Source=DESKTOP-S9KEC69\SQLEXPRESS;Initial Catalog=db_shop;Integrated Security=True;MultipleActiveResultSets=True" SettingsObjectName="System.Configuration.ConfigurationManager.ConnectionStrings" SettingsPropertyName="db_shopConnectionString" Provider="System.Data.SqlClient" />
+  <Table Name="dbo.Products" Member="Products">
+    <Type Name="Product">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="ProductName" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="ProductData" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="InsertDate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="Keywords" Type="System.String" DbType="NVarChar(150)" CanBeNull="true" />
+      <Column Name="Description" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="Price" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="PackageID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="PackageNumber" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="CatID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="SubCatID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ForUsers" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="Postage" Type="System.String" DbType="NVarChar(50)" CanBeNull="true" />
+      <Column Name="Link" Type="System.String" DbType="NVarChar(250)" CanBeNull="true" />
+      <Column Name="ProductPostID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Stars" Type="System.Byte" DbType="TinyInt" CanBeNull="true" />
+      <Column Name="ShowInDefault" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="NewIcon" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="SoonIcon" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="Photo" Type="System.String" DbType="NVarChar(250)" CanBeNull="true" />
+      <Column Name="SmallPhoto" Type="System.String" DbType="NVarChar(250)" CanBeNull="true" />
+      <Column Name="IsActive" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="ClickCount" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Brand_ID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="NotExistIcon" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="SubCatID2" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="weight" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="update_date" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="include_tax" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="aparat_video" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="pdesc" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="Code" Type="System.String" DbType="NVarChar(100)" CanBeNull="true" />
+      <Column Name="Stop_Produce" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="Garanty" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="Catalog" Type="System.String" DbType="NVarChar(256)" CanBeNull="true" />
+      <Column Name="LatinName" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="Orders" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="FreeSend" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="ScoreValue" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="PriceOff" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="Color" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ShowOfferPrice" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="OfferPrice" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="GarantyInline" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="IsPostPishtaz" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="Insert_Date_Video" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="Video_Url" Type="System.String" DbType="NVarChar(600)" CanBeNull="true" />
+      <Column Name="Thumbnail_Video" Type="System.String" DbType="NVarChar(600)" CanBeNull="true" />
+      <Column Name="IsDefaultVideo" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="ClickCountVideo" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="LikeVideo" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Video_Duration" Type="System.String" DbType="NVarChar(20)" CanBeNull="true" />
+      <Association Name="Product_Product_Image" Member="Product_Images" ThisKey="ID" OtherKey="ProductID" Type="Product_Image" />
+      <Association Name="Product_Product_Image1" Member="Product_Images1" ThisKey="ID" OtherKey="ProductID" Type="Product_Image" />
+      <Association Name="Product_Products_Taged" Member="Products_Tageds" ThisKey="ID" OtherKey="PID" Type="Products_Taged" />
+      <Association Name="Product_Products_Rank" Member="Products_Ranks" ThisKey="ID" OtherKey="PID" Type="Products_Rank" />
+      <Association Name="Brand_Product" Member="Brand" ThisKey="Brand_ID" OtherKey="Brand_ID" Type="Brand" IsForeignKey="true" DeleteRule="CASCADE" />
+      <Association Name="ShopCat_Product" Member="ShopCat" ThisKey="CatID" OtherKey="ID" Type="ShopCat" IsForeignKey="true" />
+      <Association Name="ShopSubCat_Product" Member="ShopSubCat" ThisKey="SubCatID" OtherKey="ID" Type="ShopSubCat" IsForeignKey="true" />
+      <Association Name="ShopSubCat2_Product" Member="ShopSubCat2" ThisKey="SubCatID2" OtherKey="ID" Type="ShopSubCat2" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Brands" Member="Brands">
+    <Type Name="Brand">
+      <Column Name="Brand_ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="Brand_name" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="Brand_pic" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="Brand_order" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Brand_Des" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="Brand_kword" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="LastUpdate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="Title" Type="System.String" DbType="NVarChar(250)" CanBeNull="true" />
+      <Column Name="Description" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="PeName" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Association Name="Brand_Product" Member="Products" ThisKey="Brand_ID" OtherKey="Brand_ID" Type="Product" />
+    </Type>
+  </Table>
+  <Table Name="dbo.ShopCat" Member="ShopCats">
+    <Type Name="ShopCat">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="CatName" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="Keywords" Type="System.String" DbType="NVarChar(150)" CanBeNull="true" />
+      <Column Name="Description" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="IsActive" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="include_tax" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="Photo" Type="System.String" DbType="NVarChar(100)" CanBeNull="true" />
+      <Column Name="Footer_Photo" Type="System.String" DbType="NVarChar(100)" CanBeNull="true" />
+      <Column Name="LastUpdate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="Title" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="Descr" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="orders" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="LatinName" Type="System.String" DbType="VarChar(400)" CanBeNull="true" />
+      <Column Name="BackgroundImage" Type="System.String" DbType="NVarChar(600)" CanBeNull="true" />
+      <Association Name="ShopCat_Product" Member="Products" ThisKey="ID" OtherKey="CatID" Type="Product" />
+      <Association Name="ShopCat_ShopSubCat" Member="ShopSubCats" ThisKey="ID" OtherKey="CatID" Type="ShopSubCat" />
+      <Association Name="ShopCat_Tag" Member="Tags" ThisKey="ID" OtherKey="CatID" Type="Tag" />
+    </Type>
+  </Table>
+  <Table Name="dbo.ShopSubCat" Member="ShopSubCats">
+    <Type Name="ShopSubCat">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="SubCatName" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="CatID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Keywords" Type="System.String" DbType="NVarChar(150)" CanBeNull="true" />
+      <Column Name="Description" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="IsActive" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="Smallphoto" Type="System.String" DbType="NVarChar(255)" CanBeNull="true" />
+      <Column Name="include_tax" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="LastUpdate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="Title" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="Descr" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="ShowInDefault" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="LatinName" Type="System.String" DbType="VarChar(400)" CanBeNull="true" />
+      <Association Name="ShopSubCat_Product" Member="Products" ThisKey="ID" OtherKey="SubCatID" Type="Product" />
+      <Association Name="ShopSubCat_ShopSubCat2" Member="ShopSubCat2s" ThisKey="ID" OtherKey="SubCatID" Type="ShopSubCat2" />
+      <Association Name="ShopCat_ShopSubCat" Member="ShopCat" ThisKey="CatID" OtherKey="ID" Type="ShopCat" IsForeignKey="true" DeleteRule="CASCADE" />
+    </Type>
+  </Table>
+  <Table Name="dbo.ShopSubCat2" Member="ShopSubCat2s">
+    <Type Name="ShopSubCat2">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="SubCatName" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="SubCatID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Keywords" Type="System.String" DbType="NVarChar(150)" CanBeNull="true" />
+      <Column Name="Description" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="IsActive" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="Smallphoto" Type="System.String" DbType="NVarChar(255)" CanBeNull="true" />
+      <Column Name="include_tax" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="LastUpdate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="Title" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="Descr" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="ShowInDefault" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="LatinName" Type="System.String" DbType="VarChar(400)" CanBeNull="true" />
+      <Association Name="ShopSubCat2_Product" Member="Products" ThisKey="ID" OtherKey="SubCatID2" Type="Product" />
+      <Association Name="ShopSubCat_ShopSubCat2" Member="ShopSubCat" ThisKey="SubCatID" OtherKey="ID" Type="ShopSubCat" IsForeignKey="true" DeleteRule="CASCADE" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Product_Images" Member="Product_Images">
+    <Type Name="Product_Image">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="ProductID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ImageURL" Type="System.String" DbType="NVarChar(250)" CanBeNull="true" />
+      <Column Name="S_ImageURL" Type="System.String" DbType="NVarChar(250)" CanBeNull="true" />
+      <Association Name="Product_Product_Image" Member="Product" ThisKey="ProductID" OtherKey="ID" Type="Product" IsForeignKey="true" DeleteRule="CASCADE" />
+      <Association Name="Product_Product_Image1" Member="Product1" ThisKey="ProductID" OtherKey="ID" Type="Product" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Tags" Member="Tags">
+    <Type Name="Tag">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="TagName" Type="System.String" DbType="NVarChar(500)" CanBeNull="true" />
+      <Column Name="CatID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="SubCatID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="SubCatID2" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Association Name="Tag_Products_Taged" Member="Products_Tageds" ThisKey="ID" OtherKey="TagID" Type="Products_Taged" />
+      <Association Name="ShopCat_Tag" Member="ShopCat" ThisKey="CatID" OtherKey="ID" Type="ShopCat" IsForeignKey="true" DeleteRule="CASCADE" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Products_Taged" Member="Products_Tageds">
+    <Type Name="Products_Taged">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="PID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="TagID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Association Name="Product_Products_Taged" Member="Product" ThisKey="PID" OtherKey="ID" Type="Product" IsForeignKey="true" DeleteRule="CASCADE" />
+      <Association Name="Tag_Products_Taged" Member="Tag" ThisKey="TagID" OtherKey="ID" Type="Tag" IsForeignKey="true" DeleteRule="CASCADE" />
+    </Type>
+  </Table>
+  <Table Name="dbo.RankItems" Member="RankItems">
+    <Type Name="RankItem">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="RankItem" Member="RankItem1" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Association Name="RankItem_Products_Rank" Member="Products_Ranks" ThisKey="ID" OtherKey="ItemID" Type="Products_Rank" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Products_Ranks" Member="Products_Ranks">
+    <Type Name="Products_Rank">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="PID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ItemID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Counter" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="TotalRank" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Association Name="Product_Products_Rank" Member="Product" ThisKey="PID" OtherKey="ID" Type="Product" IsForeignKey="true" />
+      <Association Name="RankItem_Products_Rank" Member="RankItem" ThisKey="ItemID" OtherKey="ID" Type="RankItem" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.BlogGroup" Member="BlogGroups">
+    <Type Name="BlogGroup">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="PersianName" Type="System.String" DbType="NVarChar(250)" CanBeNull="true" />
+      <Column Name="LatinName" Type="System.String" DbType="VarChar(250)" CanBeNull="true" />
+      <Column Name="IsParent" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="IsActive" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="IsDefault" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="ParentID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="C_Order" Type="System.Int32" DbType="Int" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.BlogPost" Member="BlogPosts">
+    <Type Name="BlogPost">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="PTitle" Type="System.String" DbType="NVarChar(800)" CanBeNull="true" />
+      <Column Name="GID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Author" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="InserDate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="Photo" Type="System.String" DbType="NVarChar(800)" CanBeNull="true" />
+      <Column Name="BreifText" Type="System.String" DbType="NVarChar(210)" CanBeNull="true" />
+      <Column Name="CompeleteText" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="SourcePostUrl" Type="System.String" DbType="NVarChar(800)" CanBeNull="true" />
+      <Column Name="SourcePostName" Type="System.String" DbType="NVarChar(250)" CanBeNull="true" />
+      <Column Name="ClickCount" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="IsActive" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="TotalComment" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ImageForBanner" Type="System.String" DbType="NVarChar(800)" CanBeNull="true" />
+      <Column Name="AuthorName" Type="System.String" DbType="NVarChar(800)" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.BlogTag" Member="BlogTags">
+    <Type Name="BlogTag">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="GID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="TagName" Type="System.String" DbType="NVarChar(250)" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Pages" Member="Pages">
+    <Type Name="Page">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="Title" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="Page_Name" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="Description" Type="System.String" DbType="NVarChar(500)" CanBeNull="true" />
+      <Column Name="Keywords" Type="System.String" DbType="NVarChar(500)" CanBeNull="true" />
+      <Column Name="Page_Order" Type="System.Byte" DbType="TinyInt" CanBeNull="true" />
+      <Column Name="Parent_Page" Type="System.Byte" DbType="TinyInt" CanBeNull="true" />
+      <Column Name="Include_IN_Menu" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="Page_Data" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="Is_Default_Page" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="Page_Type" Type="System.Byte" DbType="TinyInt" CanBeNull="true" />
+      <Column Name="IsInHeaderMenu" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="IsInAlwaysShow" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="thumbnail" Type="System.String" DbType="VarChar(250)" CanBeNull="true" />
+      <Column Name="Place" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="IsClub" Type="System.Boolean" DbType="Bit NOT NULL" CanBeNull="false" />
+      <Column Name="RedirectToLink" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="PageUrl" Type="System.String" DbType="NVarChar(1024)" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.PostTag" Member="PostTags">
+    <Type Name="PostTag">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="PostID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="TagID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.TFSPages" Member="TFSPages">
+    <Type Name="TFSPage">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="Title" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="Page_Name" Type="System.String" DbType="NVarChar(300)" CanBeNull="true" />
+      <Column Name="Description" Type="System.String" DbType="NVarChar(500)" CanBeNull="true" />
+      <Column Name="Keywords" Type="System.String" DbType="NVarChar(500)" CanBeNull="true" />
+      <Column Name="Page_Order" Type="System.Byte" DbType="TinyInt" CanBeNull="true" />
+      <Column Name="Page_Data" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="Page_Type" Type="System.Byte" DbType="TinyInt" CanBeNull="true" />
+      <Column Name="IsActive" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="IsComment" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="IsParent" Type="System.Boolean" DbType="Bit NOT NULL" CanBeNull="false" />
+      <Column Name="ParentID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Position" Type="System.Byte" DbType="TinyInt NOT NULL" CanBeNull="false" />
+    </Type>
+  </Table>
+  <Table Name="dbo.TFSVideo" Member="TFSVideos">
+    <Type Name="TFSVideo">
+      <Column Name="Id" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="VideoImgae" Type="System.String" DbType="NVarChar(600)" CanBeNull="true" />
+      <Column Name="VideoUrl" Type="System.String" DbType="NVarChar(600)" CanBeNull="true" />
+      <Column Name="Title" Type="System.String" DbType="NVarChar(500)" CanBeNull="true" />
+      <Column Name="ClickCount" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="LikeVideo" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="InsertDate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="VideoTypeID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Video_Duration" Type="System.String" DbType="NVarChar(20)" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.TFSVideoType" Member="TFSVideoTypes">
+    <Type Name="TFSVideoType">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="Title" Type="System.String" DbType="NVarChar(400)" CanBeNull="true" />
+      <Column Name="LatinName" Type="System.String" DbType="NVarChar(400)" CanBeNull="true" />
+      <Column Name="IsActive" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.TFS_Users" Member="TFS_Users">
+    <Type Name="TFS_User">
+      <Column Name="ApplicationId" Type="System.Guid" DbType="UniqueIdentifier NOT NULL" CanBeNull="false" />
+      <Column Name="UserId" Type="System.Guid" DbType="UniqueIdentifier NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="UserName" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="LastActivityDate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Association Name="TFS_User_TFS_Membership" Member="TFS_Membership" ThisKey="UserId" OtherKey="UserId" Type="TFS_Membership" Cardinality="One" />
+    </Type>
+  </Table>
+  <Table Name="dbo.TFS_Membership" Member="TFS_Memberships">
+    <Type Name="TFS_Membership">
+      <Column Name="ApplicationId" Type="System.Guid" DbType="UniqueIdentifier NOT NULL" CanBeNull="false" />
+      <Column Name="UserId" Type="System.Guid" DbType="UniqueIdentifier NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="Password" Type="System.String" DbType="NVarChar(128) NOT NULL" CanBeNull="false" />
+      <Column Name="PasswordSalt" Type="System.String" DbType="NVarChar(128) NOT NULL" CanBeNull="false" />
+      <Column Name="PasswordKey" Type="System.String" DbType="NVarChar(128) NOT NULL" CanBeNull="false" />
+      <Column Name="Mobile" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="IsApproved" Type="System.Boolean" DbType="Bit NOT NULL" CanBeNull="false" />
+      <Column Name="CreateDate" Type="System.DateTime" DbType="DateTime NOT NULL" CanBeNull="false" />
+      <Column Name="LastLoginDate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="LastPasswordChangedDate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="Comment" Type="System.String" DbType="NText" CanBeNull="true" UpdateCheck="Never" />
+      <Association Name="TFS_User_TFS_Membership" Member="TFS_User" ThisKey="UserId" OtherKey="UserId" Type="TFS_User" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.customers" Member="customers">
+    <Type Name="customer">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="FirstName" Type="System.String" DbType="NVarChar(20)" CanBeNull="true" />
+      <Column Name="LastName" Type="System.String" DbType="NVarChar(25)" CanBeNull="true" />
+      <Column Name="Email" Type="System.String" DbType="VarChar(250)" CanBeNull="true" />
+      <Column Name="Mobile" Type="System.String" DbType="VarChar(30)" CanBeNull="true" />
+      <Column Name="Address" Type="System.String" DbType="NVarChar(250)" CanBeNull="true" />
+      <Column Name="PostalCode" Type="System.String" DbType="VarChar(12)" CanBeNull="true" />
+      <Column Name="HomeTel" Type="System.String" DbType="VarChar(15)" CanBeNull="true" />
+      <Column Name="CompanyTel" Type="System.String" DbType="VarChar(15)" CanBeNull="true" />
+      <Column Name="CompanyName" Type="System.String" DbType="NVarChar(30)" CanBeNull="true" />
+      <Column Name="StateID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="city" Type="System.String" DbType="NVarChar(35)" CanBeNull="true" />
+      <Column Name="REFFERAL" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="phone_code" Type="System.String" DbType="NVarChar(4)" CanBeNull="true" />
+      <Column Name="InviteUserEmail" Type="System.String" DbType="VarChar(250)" CanBeNull="true" />
+      <Column Name="ExpireDate" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="UserCode" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Column Name="ProductScore" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="UserSignature" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="UserAvatar" Type="System.String" DbType="NVarChar(1024)" CanBeNull="true" />
+      <Column Name="ShowSignature" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="Gender" Type="System.String" DbType="VarChar(20)" CanBeNull="true" />
+      <Column Name="BirthDay" Type="System.String" DbType="VarChar(5)" CanBeNull="true" />
+      <Column Name="BirthMonth" Type="System.String" DbType="VarChar(5)" CanBeNull="true" />
+      <Column Name="BirthYear" Type="System.String" DbType="VarChar(10)" CanBeNull="true" />
+      <Column Name="NumNative" Type="System.String" DbType="VarChar(15)" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Orders" Member="Orders">
+    <Type Name="Order">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="CustomerName" Type="System.String" DbType="NVarChar(50)" CanBeNull="true" />
+      <Column Name="TotalPrice" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="MethodID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Address" Type="System.String" DbType="NVarChar(500)" CanBeNull="true" />
+      <Column Name="Phone" Type="System.String" DbType="NVarChar(15)" CanBeNull="true" />
+      <Column Name="PostalCode" Type="System.String" DbType="NVarChar(50)" CanBeNull="true" />
+      <Column Name="Done" Type="System.Byte" DbType="TinyInt" CanBeNull="true" />
+      <Column Name="InsertDate" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="SendToUser" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="userID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="SaleReferenceId" Type="System.String" DbType="VarChar(MAX)" CanBeNull="true" />
+      <Column Name="RefID" Type="System.String" DbType="VarChar(MAX)" CanBeNull="true" />
+      <Column Name="variz_mablagh" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="variz_tarikh" Type="System.String" DbType="VarChar(20)" CanBeNull="true" />
+      <Column Name="variz_fish" Type="System.String" DbType="VarChar(20)" CanBeNull="true" />
+      <Column Name="PostMethod" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="SubTotal" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="PostFee" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="arzesh_afzode" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="package" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="isTemp" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="giftID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="customerMobile" Type="System.String" DbType="NVarChar(30)" CanBeNull="true" />
+      <Column Name="customerState" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="customerCity" Type="System.String" DbType="NVarChar(35)" CanBeNull="true" />
+      <Column Name="barname_no" Type="System.String" DbType="NVarChar(50)" CanBeNull="true" />
+      <Column Name="ghabze_post" Type="System.String" DbType="NVarChar(50)" CanBeNull="true" />
+      <Column Name="Best_Time" Type="System.String" DbType="NVarChar(50)" CanBeNull="true" />
+      <Column Name="Description" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="IsView" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="BankType" Type="System.Int16" DbType="SmallInt" CanBeNull="true" />
+      <Column Name="DateReview" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="DateConfirmOrder" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="DateReadySend" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="DateSended" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="DateConfirmAccount" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="DateRecieve" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="TfCupPrice" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="TfCup" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="RecieveTFCup" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="Best_Day" Type="System.String" DbType="NVarChar(15)" CanBeNull="true" />
+      <Column Name="WaitTFCup" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="UseTFCup" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ShutDownTFCup" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Porterage" Type="System.String" DbType="NVarChar(500)" CanBeNull="true" />
+      <Column Name="Token" Type="System.String" DbType="VarChar(20)" CanBeNull="true" />
+      <Column Name="Status" Type="System.String" DbType="VarChar(10)" CanBeNull="true" />
+      <Column Name="TerminalNo" Type="System.String" DbType="VarChar(100)" CanBeNull="true" />
+      <Column Name="RRN" Type="System.String" DbType="VarChar(200)" CanBeNull="true" />
+      <Column Name="HashCardNumber" Type="System.String" DbType="VarChar(200)" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.ORderRows" Member="ORderRows">
+    <Type Name="ORderRow">
+      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="OrderID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ProductID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="totalPrice" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Quantity" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="include_tax" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="package" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="color" Type="System.String" DbType="NVarChar(100)" CanBeNull="true" />
+      <Column Name="model" Type="System.String" DbType="NVarChar(150)" CanBeNull="true" />
+      <Column Name="size" Type="System.String" DbType="NVarChar(150)" CanBeNull="true" />
+      <Column Name="smzId" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ModelID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="SizeID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ColorID" Type="System.Int32" DbType="Int" CanBeNull="true" />
+    </Type>
+  </Table>
+</Database>
