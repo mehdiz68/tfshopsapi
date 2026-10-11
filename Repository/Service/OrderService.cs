@@ -265,6 +265,17 @@ namespace Repository.Service
             return GetByReturnQueryable(x => x, x => currentorder.Contains(x.Id) && x.OrderId == null, x => x.OrderByDescending(s => s.CustomerOrderId), "OrderDeliveries.OrderRows.ProductPrice.ProductImages.Image,OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectModel,OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectSize,OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectColor,OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectSize.ProductAttributeGroupSelect.ProductAttribute,OrderWallets.Wallet,OrderStates,OrderDeliveries,OrderDeliveries.OrderRows.Product.ProductPrices.ProductImages.Image,OrderWallets.Wallet.BankAccount,OrderRates,ChildOrders.OrderDeliveries.OrderRows.ProductPrice.ProductImages.Image,ChildOrders.OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectModel,ChildOrders.OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectSize,ChildOrders.OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectColor,ChildOrders.OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectSize.ProductAttributeGroupSelect.ProductAttribute,ChildOrders.OrderDeliveries,ChildOrders.OrderDeliveries.OrderRows.Product.ProductPrices.ProductImages.Image");
         }
 
+        // متنِ کاملِ خطا (همراهِ stack trace و همه‌ی InnerException ها) برایِ EventLog.
+        // قبلاً این‌جا «ex.Message + ex.InnerException != null ? ex.InnerException.Message : ""» بود که
+        // به‌خاطرِ اولویتِ عملگرها همیشه ex.InnerException.Message را می‌خواند؛ وقتی خطا inner
+        // نداشت، خودِ catch یک NullReferenceException می‌داد، خطایِ واقعی گم می‌شد و فقط
+        // «Object reference not set...» در لاگِ addorderِ کنترلر می‌رسید.
+        private static string DescribeAddOrderError(Exception ex)
+        {
+            string text = ex.ToString();
+            return text.Length > 4000 ? text.Substring(0, 4000) : text;
+        }
+
         public long AddOrder(string userid, string adminuserid, List<Basket> BasketItems, List<ProductBox> productBoxes, string userDescription, bool sendFactor, int BankAccountId, int PaymentType, string codeGift, int bon, short languageid, string UserPayAttach, out bool IsEstelam, out bool validFreeSend, out string customid)
         {
             customid = "";
@@ -295,6 +306,7 @@ namespace Repository.Service
                     case 6: hours = bankaccount.HasFishHours; break;
                     case 7: hours = bankaccount.torob_cancel_minutes / 60.0; break;
                     case 8: hours = bankaccount.dgpay_cancel_minutes / 60.0; break;
+                    case 9: hours = bankaccount.snappay_cancel_minutes / 60.0; break;
                     default:
                         break;
                 }
@@ -328,7 +340,11 @@ namespace Repository.Service
                     if (!String.IsNullOrEmpty(codeGift))
                     {
                         bool validUserCodeGift = false;
-                        var usercode = context.UserCodeGifts.Where(x => x.UserId == userid && x.Code == codeGift).Include("Offer.offerProductCategories").Include("UserCodeGiftLogs").Include("UserCodeGiftLogs.Order").Select(x => new { x.Id, x.Value, x.CodeType, x.Offer, x.UserCodeGiftLogs, x.Code, x.CountUse, x.IsActive, x.MaxValue, x.Offer.ExpireDate, x.Offer.StartDate, eeExpireDate = x.ExpireDate, x.Offer.offerProductCategories }).SingleOrDefault();
+                        // قبلاً SingleOrDefault بدونِ شرطِ «پاک‌نشده» بود: کاربری که دو ردیف با همین کد
+                        // داشت (یکی از پیشنهادِ قدیمیِ پاک‌شده) ثبتِ سفارش با کدِ تخفیف را کلاً نمی‌توانست،
+                        // در حالی که سبدِ خرید همان کد را معتبر نشان می‌داد. حالا دقیقاً همان انتخابِ
+                        // سبد: فقط پیشنهادِ پاک‌نشده، و اگر باز هم بیشتر از یکی بود جدیدترین.
+                        var usercode = context.UserCodeGifts.Where(x => x.UserId == userid && x.Code == codeGift && x.Offer.IsDeleted == false).Include("Offer.offerProductCategories").Include("UserCodeGiftLogs").Include("UserCodeGiftLogs.Order").OrderByDescending(x => x.Id).Select(x => new { x.Id, x.Value, x.CodeType, x.Offer, x.UserCodeGiftLogs, x.Code, x.CountUse, x.IsActive, x.MaxValue, x.Offer.ExpireDate, x.Offer.StartDate, eeExpireDate = x.ExpireDate, x.Offer.offerProductCategories }).FirstOrDefault();
                         if (usercode != null)
                         {
                             UsergiftCodeId = usercode.Id;
@@ -575,6 +591,13 @@ namespace Repository.Service
                     OrderAttribute sendPackagePrice = context.OrderAttributes.Where(x => x.DataType == 31).Single();
                     OrderAttribute sendPaskeraye = context.OrderAttributes.Where(x => x.DataType == 32).Single();
                     OrderAttribute sendrawPrice = context.OrderAttributes.Where(x => x.DataType == 33).Single();
+                    // بیمه و بسته‌بندی جدا از هزینه‌ی ارسال - برایِ اسنپ‌پی که این دو را اقلامِ جدایِ
+                    // سبد می‌خواهد (نه داخلِ shippingAmount). هزینه‌ی ارسال (DataType 14) مثلِ قبل
+                    // «همه با هم» ذخیره می‌شود و فاکتور/پنل تغییری نمی‌کنند؛ این دو فقط ریزِ همان عددند.
+                    // FirstOrDefault (نه Single): اگر ردیف‌هایشان هنوز در جدولِ OrderAttributes نباشد،
+                    // ثبتِ سفارش نباید خراب شود - فقط ذخیره‌ی جدا انجام نمی‌شود.
+                    OrderAttribute insurancePriceAttr = context.OrderAttributes.Where(x => x.DataType == 34).FirstOrDefault();
+                    OrderAttribute packagePriceAttr = context.OrderAttributes.Where(x => x.DataType == 35).FirstOrDefault();
 
                     OrderAttribute valueAdded = context.OrderAttributes.Where(x => x.DataType == 15).Single();
                     OrderAttribute usrdescr = context.OrderAttributes.Where(x => x.DataType == 18).Single();
@@ -589,6 +612,8 @@ namespace Repository.Service
                     {
                         int CityId = item.UserAddressId > 0 ? context.UserAddresses.Find(item.UserAddressId.Value).CityId.Value : context.Users.Find(userid).CityId.Value;
                         sumOff = 0;
+                        // سهمِ بیمه و بسته‌بندی از همان cost ای که پایین‌تر به‌عنوانِ هزینه‌ی ارسال ذخیره می‌شود
+                        int costInsurance = 0, costPackage = 0;
 
 
                         //هزینه ارسال
@@ -632,11 +657,16 @@ namespace Repository.Service
                                     var SendWayBoxPrice = productBoxes.Where(x => x.SendwayBox.ProductPackageType == item.ProductPackageType).SelectMany(x => x.sendWayBoxPrices.Where(a => a.productSendWay.Id == item.SendWayId)).OrderByDescending(x => x.BoxMass).ThenByDescending(s => s.IsDefault).ThenBy(s => s.PasKeraye).ThenBy(s => s.cost).First();
                                     cost = SendWayBoxPrice.PasKeraye ? (0 + Extraprice2Cost + PackageCost) : costvalue.HasValue ? costvalue.Value : 0;
                                     sendprice = SendWayBoxPrice.PasKeraye ? 0 : costvalue.HasValue ? costvalue.Value : 0;
+                                    // پس‌کرایه: cost فقط Extraprice2 + بسته‌بندی است (بیمه در آن نیست)
+                                    costPackage = PackageCost;
+                                    costInsurance = SendWayBoxPrice.PasKeraye ? 0 : InsuranceCost;
 
                                     if (FreeSendPrice)
                                     {
                                         cost = 0;
                                         sendprice = 0;
+                                        costInsurance = 0;
+                                        costPackage = 0;
                                     }
                                     //هزینه بسته بندی
                                     order.OrderAttributeSelects.Add(new OrderAttributeOrder()
@@ -664,12 +694,35 @@ namespace Repository.Service
                             sendprice = 0;
                             sumcost = 0;
                         }
+                        if (cost == 0)
+                        {
+                            costInsurance = 0;
+                            costPackage = 0;
+                        }
                         order.OrderAttributeSelects.Add(new OrderAttributeOrder()
                         {
                             AttributeId = sendPrice.Id,
                             OrderDeliveryId = item.Id,
                             Value = cost.ToString()
                         });
+                        if (insurancePriceAttr != null)
+                        {
+                            order.OrderAttributeSelects.Add(new OrderAttributeOrder()
+                            {
+                                AttributeId = insurancePriceAttr.Id,
+                                OrderDeliveryId = item.Id,
+                                Value = costInsurance.ToString()
+                            });
+                        }
+                        if (packagePriceAttr != null)
+                        {
+                            order.OrderAttributeSelects.Add(new OrderAttributeOrder()
+                            {
+                                AttributeId = packagePriceAttr.Id,
+                                OrderDeliveryId = item.Id,
+                                Value = costPackage.ToString()
+                            });
+                        }
                         order.OrderAttributeSelects.Add(new OrderAttributeOrder()
                         {
                             AttributeId = sendrawPrice.Id,
@@ -894,6 +947,14 @@ namespace Repository.Service
                                     sumcommision += commision;
                                 }
                                 break;
+                            case 9:
+                                if (bankaccount.Commisionsnappay > 0)
+                                {
+                                    commision = Convert.ToInt32(Math.Ceiling((sumPrice + sumcost - (OffPrice > 0 ? OffPrice : 0)) * (bankaccount.Commisionsnappay / 100.0)));
+                                    commision = Convert.ToInt32(Math.Ceiling(commision * 0.001) * 1000);
+                                    sumcommision += commision;
+                                }
+                                break;
                             default:
                                 break;
                         }
@@ -990,7 +1051,7 @@ namespace Repository.Service
                         ActionName = "AddOrder",
                         RequestType = false,
                         StatusCode = 500,
-                        Description = ex.Message + ex.InnerException != null ? ex.InnerException.Message : "",
+                        Description = DescribeAddOrderError(ex),
                         LogDateTime = DateTime.Now,
                         UserId = userid
                     };
@@ -1012,7 +1073,7 @@ namespace Repository.Service
                     ActionName = "AddOrder",
                     RequestType = false,
                     StatusCode = 500,
-                    Description = ex.Message + ex.InnerException != null ? ex.InnerException.Message : "",
+                    Description = DescribeAddOrderError(ex),
                     LogDateTime = DateTime.Now,
                     UserId = userid
                 };

@@ -49,6 +49,17 @@ namespace TfShop
             //FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
             //RouteConfig.RegisterRoutes(RouteTable.Routes);
             //BundleConfig.RegisterBundles(BundleTable.Bundles);
+
+            // واژگانِ اصلاحِ املا فقط در حافظه است، پس بعد از هر ری‌استارتِ app pool خالی
+            // می‌شود. اگر منتظر بمانیم تا اولین جستجوی بی‌نتیجه پرش کند، همان کاربر چند
+            // ثانیه معطل می‌شود؛ این‌جا در پس‌زمینه و بدونِ بلاک‌کردنِ استارت گرم می‌شود.
+            // EnsureVocabularyLoaded خودش خطاها را می‌بلعد و لاگ می‌کند، و اگر این‌جا به هر
+            // دلیلی نگیرد، مسیرِ تنبلِ داخلِ SearchService همچنان پوشش می‌دهد.
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                try { Infrastructure.Search.SearchIndexer.EnsureVocabularyLoaded(); }
+                catch { }
+            });
         }
         public override string GetVaryByCustomString(HttpContext context, string custom)
         {

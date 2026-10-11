@@ -187,7 +187,12 @@ namespace Repository.Service
                 LetmeKnows = x.ProductLetmeknows.Count,
                 prpriceCount = x.ProductPrices.Where(s => s.ProductAttributeSelectSizeId.HasValue || s.ProductAttributeSelectGarantyId.HasValue || s.ProductAttributeSelectWeightId.HasValue).Count(),
                 UserFav = userid != null ? x.ProductFavorates.Any(s => s.UserId == userid) : false,
-                Maxquantity= x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().MaxBasketCount
+                // طبقِ همون فرمولی که GotoStep3 موقعِ ثبتِ سفارش واقعاً باهاش چک می‌کنه (کوچیک‌ترِ
+                // سقفِ ادمین و موجودیِ واقعی) - قبلاً فقط MaxBasketCount برمی‌گشت (بدونِ توجه به
+                // Quantity/موجودی)، یعنی می‌شد بیشتر از موجودیِ واقعی به سبد اضافه کرد.
+                Maxquantity = Math.Min(
+                    x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().MaxBasketCount,
+                    x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().Quantity)
 
 
             });

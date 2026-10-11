@@ -597,6 +597,148 @@ namespace TfShop.Controllers
 
         }
 
+        /// <summary>
+        /// کدهای تأییدِ وبمستر و اسکریپت‌های شخصِ ثالث (گفتینو، آنالیتیکس، …) که در سایتِ قدیم
+        /// با ‎@Html.Action("GetJsTools", "Home")‎ انتهای body هر صفحه رندر می‌شدند.
+        /// هر دو فیلد HTMLِ خام‌اند و همان‌طور که در تنظیمات ذخیره شده‌اند برمی‌گردند.
+        /// </summary>
+        /// <summary>
+        /// عضویت در خبرنامه - معادلِ HomeController.JoinNewsLetter در سایتِ قدیم.
+        ///
+        /// ایمیل با IsVerified=false ثبت می‌شود و لینکِ تأیید ایمیل می‌شود؛ تا وقتی کاربر
+        /// روی آن لینک نزند عضو حساب نمی‌شود. کوکیِ پنج‌دقیقه‌ایِ نسخه‌ی قدیمی این‌جا
+        /// نیست (این API نشست ندارد) و جایش یک سقفِ زمانی روی خودِ رکورد گذاشته شده:
+        /// اگر ایمیلِ تأییدنشده کمتر از پنج دقیقه پیش ثبت شده باشد، دوباره ایمیل
+        /// نمی‌فرستیم - همان محافظت در برابرِ اسپم، بدونِ وابستگی به کوکی.
+        /// </summary>
+        [HttpPost]
+        public async Task<JsonResult> JoinNewsLetter(string Email)
+        {
+            try
+            {
+                string email = (Email ?? "").Trim();
+
+                if (string.IsNullOrEmpty(email) ||
+                    !Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$"))
+                {
+                    return Json(new { Message = "ایمیل وارد شده معتبر نیست.", statusCode = 500 },
+                        JsonRequestBehavior.AllowGet);
+                }
+
+                var existing = uow.NewsLetterEmailRepository
+                    .Get(x => x, x => x.Email == email).FirstOrDefault();
+
+                if (existing != null && existing.IsVerified)
+                {
+                    return Json(new { Message = "ایمیل وارد شده قبلا در خبرنامه وارد شده است.", statusCode = 500 },
+                        JsonRequestBehavior.AllowGet);
+                }
+
+                if (existing != null && existing.InsertDate > DateTime.Now.AddMinutes(-5))
+                {
+                    return Json(new { Message = "5 دقیقه دیگر امتحان نمایید", statusCode = 500 },
+                        JsonRequestBehavior.AllowGet);
+                }
+
+                string message;
+                if (existing == null)
+                {
+                    uow.NewsLetterEmailRepository.Insert(new NewsLetterEmail
+                    {
+                        Email = email,
+                        InsertDate = DateTime.Now,
+                        LanguageId = 1,
+                        IsVerified = false
+                    });
+                    uow.Save();
+                    message = "ایمیل شما ثبت شد. اما برای تایید آن ، به ایمیل خود مراجعه کنید.";
+                }
+                else
+                {
+                    // رکوردِ تأییدنشده‌ی قدیمی - فقط زمانش را تازه می‌کنیم تا سقفِ پنج‌دقیقه‌ای
+                    // از همین لحظه حساب شود
+                    existing.InsertDate = DateTime.Now;
+                    uow.NewsLetterEmailRepository.Update(existing);
+                    uow.Save();
+                    message = "ایمیل وارد شده قبلا ثبت شده ولی تایید نشده است. برای تایید به ایمیل خود مراجعه کنید.";
+                }
+
+                try
+                {
+                    var oSetting = uow.SettingRepository.Get(x => x, null, null, "attachment").FirstOrDefault();
+                    string host = Request.Url != null ? Request.Url.Host : "www.tfshops.com";
+                    // توکن قطعی از خودِ ایمیل ساخته می‌شود (رجوع کنید به NewsLetterToken) -
+                    // نسخه‌ی قدیم کد را در Session نگه می‌داشت و لینک فقط در همان مرورگر کار می‌کرد.
+                    string verifyUrl = "https://" + host + "/Home/VerifyEmail?email=" + Server.UrlEncode(email)
+                        + "&token=" + Infrastructure.Newsletter.NewsLetterToken.Create(email);
+
+                    var emailBody = new CoreLib.ViewModel.Email.Template(
+                        oSetting != null && oSetting.attachment != null ? oSetting.attachment.FileName : "",
+                        "تایید ایمیل شما",
+                        "بازدید کننده گرامی ، " + email + "، ایمیل شما در خبرنامه سایت ما ثبت شد . برای تایید ایمیل خود روی لینک زیر کلیک نمایید : <br/> <a href='" + verifyUrl + "'>لینک فعال سازی ایمیل برای عضویت در خبرنامه</a>  ",
+                        oSetting != null ? oSetting.WebSiteName : "",
+                        host,
+                        oSetting != null ? oSetting.WebSiteTitle : "");
+
+                    string bodyHtml = Infrastructure.Helper.CaptureHelper.RenderViewToString("_Email", emailBody, this.ControllerContext);
+
+                    var es = new EmailService();
+                    await es.SendAsync(new Microsoft.AspNet.Identity.IdentityMessage
+                    {
+                        Body = bodyHtml,
+                        Destination = email,
+                        Subject = "تایید ایمیل شما"
+                    });
+                }
+                catch (Exception mailEx)
+                {
+                    // ثبت انجام شده؛ نرسیدنِ ایمیل نباید به کاربر خطا نشان بدهد
+                    Infrastructure.EventLog.Logger.Add(5, "api", "joinnewsletter-mail", false, 500, mailEx.Message,
+                        DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                }
+
+                return Json(new { Message = message, statusCode = 200 }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "joinnewsletter", false, 500, ex.Message,
+                    DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { Message = "خطایی رخ داد", statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpGet]
+        public JsonResult GetJsTools()
+        {
+            try
+            {
+                var setting = context.Settings.AsNoTracking()
+                    .Where(x => x.LanguageId == 1)
+                    .Select(x => new { x.WebmasterVerification, x.AnalyticsVerification })
+                    .FirstOrDefault();
+
+                return Json(new
+                {
+                    data = new
+                    {
+                        WebmasterVerification = setting == null ? "" : (setting.WebmasterVerification ?? ""),
+                        AnalyticsVerification = setting == null ? "" : (setting.AnalyticsVerification ?? "")
+                    },
+                    statusCode = 200
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "getjstools", false, 500, ex.Message,
+                    DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new
+                {
+                    msg = ex.Message,
+                    statusCode = 500
+                }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         [HttpGet]
         public JsonResult GetMenu(int? which)
         {
@@ -833,10 +975,151 @@ namespace TfShop.Controllers
 
         [HttpPost]
         [CorrectArabianLetter(new string[] { "keyword" })]
-        public JsonResult MainSearch3(string keyword)
+        private void LogSearchKeyword(string keyword)
         {
             try
             {
+                uow.SearchLogRepository.Insert(new SearchLog
+                {
+                    insertDate = DateTime.Now,
+                    keyword = (keyword ?? "").Trim(),
+                    UserId = User.Identity.IsAuthenticated ? User.Identity.GetUserId() : null,
+                    ClientIP = Request.UserHostAddress,
+                    Browser = Request.Browser.Browser,
+                    UserAgent = GetUserPlatform(Request)
+                });
+                uow.Save();
+            }
+            catch { /* لاگِ جستجو هیچ‌وقت نباید جلوی نتیجه‌دادن رو بگیره */ }
+        }
+
+        /// <summary>
+        /// گروه‌های مخفی و محصولاتشان را از نتیجه‌ی جستجو بیرون می‌کشد - هم مسیرِ موتور
+        /// (که ایندکسش ممکن است هنوز بازسازی نشده باشد) و هم مسیرِ استور پروسیجرِ قدیمی.
+        /// TypeId: ‎2‎ = گروه، ‎3‎ = پیشنهادِ گروه، ‎4‎ = محصول.
+        /// محصول وقتی مخفی حساب می‌شود که *همه‌ی* گروه‌هایش مخفی باشند - دقیقاً همان قاعده‌ای
+        /// که موقعِ ساختِ ایندکسِ Meilisearch اعمال می‌شود، تا دو مسیر نتیجه‌ی یکسان بدهند.
+        /// </summary>
+        private List<MainSearch> RemoveHiddenCategoryItems(List<MainSearch> items)
+        {
+            if (items == null || items.Count == 0)
+                return items;
+            try
+            {
+                var hiddenCats = new HashSet<int>(uow.ProductCategoryRepository.Get(x => x.Id, x => x.hidden));
+                if (hiddenCats.Count == 0)
+                    return items;
+
+                var hiddenProducts = new HashSet<int>();
+                List<int> productIds = items.Where(x => x.TypeId == 4).Select(x => x.Id).Distinct().ToList();
+                if (productIds.Count > 0)
+                {
+                    // ردیف‌های SearchEngineFacts همان چیزی‌اند که پروسیجر از رویشان نتیجه می‌دهد،
+                    // پس دقیقاً همان‌ها را می‌سنجیم.
+                    var facts = uow.SearchEngineFactRepository.Get(
+                        x => new { pid = x.ProductId, cat = x.CatId },
+                        x => x.ElementTypeID == 3 && x.ProductId.HasValue && productIds.Contains(x.ProductId.Value)).ToList();
+
+                    foreach (var g in facts.GroupBy(f => f.pid.Value))
+                        if (g.All(f => f.cat.HasValue && hiddenCats.Contains(f.cat.Value)))
+                            hiddenProducts.Add(g.Key);
+                }
+
+                return items.Where(x =>
+                    !(x.TypeId == 4 && hiddenProducts.Contains(x.Id)) &&
+                    !((x.TypeId == 2 || x.TypeId == 3) && hiddenCats.Contains(x.Id))).ToList();
+            }
+            catch (Exception ex)
+            {
+                // اگر این غربال شکست خورد، بهتر است خطا را ببینیم تا بی‌سروصدا نشت کند.
+                Infrastructure.EventLog.Logger.Add(5, "api", "mainsearch3-hidden", false, 500, ex.Message,
+                    DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return items;
+            }
+        }
+
+        /// <summary>
+        /// پاک‌سازیِ ورودی برای مسیرِ قدیمی. اون مسیر رشته رو داخلِ ‎LIKE N'%...%'‎ می‌ذاره و
+        /// استور پروسیجر با EXEC اجراش می‌کنه؛ پس هر کاراکتری که بتونه از رشته بیرون بزنه
+        /// (نقل‌قول، سمی‌کالن، خط‌تیره‌ی کامنت) باید حذف بشه. فقط حروف/عدد/فاصله می‌مونه.
+        /// (اکشنِ Search یه محافظِ مشابه داشت ولی MainSearch3 هیچی نداشت.)
+        /// </summary>
+        private static string SanitizeLegacyKeyword(string keyword)
+        {
+            if (string.IsNullOrEmpty(keyword)) return "";
+            var sb = new System.Text.StringBuilder(keyword.Length);
+            foreach (char c in keyword)
+            {
+                if (char.IsLetterOrDigit(c) || c == ' ') sb.Append(c);
+            }
+            string cleaned = sb.ToString().Trim();
+            return cleaned.Length > 60 ? cleaned.Substring(0, 60) : cleaned;
+        }
+
+        /// <summary>
+        /// بازسازیِ ایندکسِ جستجو. باید بعد از هر تغییرِ عمده در کاتالوگ اجرا بشه (یا با یه
+        /// جابِ زمان‌بندی‌شده). با کلیدِ اشتراکیِ همین API محافظت می‌شه.
+        /// </summary>
+        [HttpPost]
+        public async Task<JsonResult> SearchReindex(string key)
+        {
+            string expected = System.Configuration.ConfigurationManager.AppSettings["SearchReindexKey"] ?? "";
+            if (string.IsNullOrEmpty(expected) || key != expected)
+                return Json(new { Message = "دسترسی غیرمجاز.", statusCode = 401 }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                string msg = await Infrastructure.Search.SearchIndexer.RebuildAsync(uow);
+                Infrastructure.EventLog.Logger.Add(5, "api", "search-reindex", true, 200, msg, DateTime.Now,
+                    "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { Message = msg, statusCode = 200 }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "search-reindex", false, 500, ex.Message, DateTime.Now,
+                    "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { Message = "خطا در بازسازی ایندکس: " + ex.Message, statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        public async Task<JsonResult> MainSearch3(string keyword)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(keyword))
+                    return Json(new { data = new List<MainSearch>(), statusCode = 200 }, JsonRequestBehavior.AllowGet);
+
+                // ---------- موتورِ جدید ----------
+                // خروجی عیناً هم‌شکلِ مسیرِ قدیمیه. اگه Meilisearch در دسترس نباشه null
+                // برمی‌گرده و کد بی‌سروصدا می‌افته روی همون مسیرِ SQLِ قبلی که دست‌نخورده
+                // پایین‌تر مونده - پس راه‌اندازیِ این قابلیت هیچ ریسکی برای جستجوی سایت نداره.
+                try
+                {
+                    var engineResult = await Infrastructure.Search.SearchService.MainSearchAsync(keyword);
+                    if (engineResult != null)
+                    {
+                        // ایندکس فقط با SearchReindex بازسازی می‌شود، پس گروهی که همین امروز
+                        // مخفی شده تا بازسازیِ بعدی هنوز داخلِ ایندکس است. این غربال باعث
+                        // می‌شود مخفی‌کردن بلافاصله اثر کند، بدون منتظرِ reindex ماندن.
+                        engineResult = RemoveHiddenCategoryItems(engineResult);
+                        LogSearchKeyword(keyword);
+                        return Json(new { data = engineResult, statusCode = 200 }, JsonRequestBehavior.AllowGet);
+                    }
+                }
+                catch (Exception engineEx)
+                {
+                    Infrastructure.EventLog.Logger.Add(5, "api", "mainsearch3-engine", false, 500, engineEx.Message,
+                        DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                }
+
+                // ---------- مسیرِ قدیمی (fallback) ----------
+                // هشدار: این مسیر رشته‌ی WHERE می‌سازه و استور پروسیجر با EXEC اجراش می‌کنه،
+                // یعنی مستعدِ تزریق SQL ئه. عمداً حذف نشده تا اگه موتورِ جدید بالا نیومد سایت
+                // بی‌جستجو نمونه، ولی ورودی این‌جا پاک‌سازی می‌شه.
+                keyword = SanitizeLegacyKeyword(keyword);
+                if (string.IsNullOrWhiteSpace(keyword))
+                    return Json(new { data = new List<MainSearch>(), statusCode = 200 }, JsonRequestBehavior.AllowGet);
+
                 List<CoreLib.ViewModel.SearchParserString> keywords = new List<CoreLib.ViewModel.SearchParserString>();
                 string[] characters = keyword.Split(null);
                 if (characters.Length == 1)
@@ -903,18 +1186,13 @@ namespace TfShop.Controllers
 
                 }
 
+                // استور پروسیجرِ MainSearch3 فقط در cte3 شرطِ hidden=0 دارد؛ cte2 (گروه‌ها) و
+                // cte4 (محصولات) هیچ فیلتری ندارند. چون این پروسیجر بینِ سایتِ قدیم و API
+                // مشترک است، به‌جای ALTER کردنش روی دیتابیسِ پروداکشن، خروجی را این‌جا غربال
+                // می‌کنیم - همان نتیجه، بدون هیچ تغییرِ دیتابیسی.
+                SearchLists = RemoveHiddenCategoryItems(SearchLists);
 
-                //log
-                uow.SearchLogRepository.Insert(new SearchLog
-                {
-                    insertDate = DateTime.Now,
-                    keyword = keyword.Trim(),
-                    UserId = User.Identity.IsAuthenticated ? User.Identity.GetUserId() : null,
-                    ClientIP = Request.UserHostAddress,
-                    Browser = Request.Browser.Browser,
-                    UserAgent = GetUserPlatform(Request)
-                });
-                uow.Save();
+                LogSearchKeyword(keyword);
 
                 return Json(new
                 {
@@ -4326,10 +4604,43 @@ namespace TfShop.Controllers
                         b.Id,
                         b.Title,
                         b.BankId,
+                        // توضیحِ زیرِ عنوانِ روشِ پرداخت در مرحله‌ی سوم سبد. ستونش از قبل در
+                        // BankAccounts بود ولی در این پروجکشن نمی‌آمد، پس فرانت چیزی برای
+                        // نمایش نداشت.
+                        b.Description,
                         b.MinBasketPrice,
                         b.MaxBasketPrice,
                         Image = b.Image != null ? b.Image.FileName : null
                     })
+                    .ToList();
+
+                // کدهای تخفیفِ فعالِ خودِ کاربر، برای نمایش در کادرِ «کد تخفیف» مرحله‌ی سوم.
+                // شرطِ «فعال» عیناً همان چیزی است که صفحه‌ی پروفایلِ کد تخفیف استفاده می‌کند:
+                // خودِ کد فعال، آفرش فعال و منتشرشده، منقضی نشده، و سقفِ دفعاتِ استفاده پر نشده.
+                var nowDate = DateTime.Now;
+                var userGiftCodes = uow.UserCodeGiftRepository.GetQueryList().AsNoTracking()
+                    .Include("Offer")
+                    .Include("UserCodeGiftLogs")
+                    .Where(x => x.UserId == userid
+                             && x.IsActive
+                             && x.Offer.IsActive
+                             && x.Offer.state
+                             && (x.ExpireDate == null || x.ExpireDate >= nowDate)
+                             && (x.Offer.ExpireDate == null || x.Offer.ExpireDate >= nowDate)
+                             && (x.CountUse <= 0
+                                 || x.UserCodeGiftLogs.Count(l => l.state) < x.CountUse))
+                    .OrderByDescending(x => x.Id)
+                    .Select(x => new
+                    {
+                        x.Id,
+                        x.Code,
+                        // درصدِ تخفیف و سقفِ ریالیِ آن
+                        x.Value,
+                        x.MaxValue,
+                        Title = x.Offer.Title,
+                        ExpireDate = x.ExpireDate != null ? x.ExpireDate : x.Offer.ExpireDate
+                    })
+                    .Take(20)
                     .ToList();
 
                 string offPriceType;
@@ -4354,6 +4665,7 @@ namespace TfShop.Controllers
                 // exception می‌داد و باعث خطای عمومی "خطایی رخ داد" می‌شد)
                 var cardBankAccounts = uow.BankAccountRepository.GetQueryList().AsNoTracking()
                     .Include("Imagecard")
+                    .Include("CardImage")
                     .Where(x => !isEstelam && x.IsActive && x.LanguageId == 1 && x.HasCardToCard
                         && (x.MinBasketPricecard == 0 || basketPriceForCard >= x.MinBasketPricecard)
                         && (x.MaxBasketPricecard == 0 || basketPriceForCard <= x.MaxBasketPricecard))
@@ -4368,7 +4680,10 @@ namespace TfShop.Controllers
                         b.AccountSHBN,
                         b.AccountName,
                         ExpireHours = b.CardNumberHours,
-                        Image = b.AttachementIdcard.HasValue && b.Imagecard != null ? b.Imagecard.FileName : null
+                        Image = b.AttachementIdcard.HasValue && b.Imagecard != null ? b.Imagecard.FileName : null,
+                        // تصویرِ خودِ کارتِ مقصد (CardAttachementId) - جدا از آیکونِ روشِ پرداخت
+                        // بالا؛ در مرحله‌ی «کارت مقصد» نمایش داده می‌شود.
+                        CardImage = b.CardAttachementId.HasValue && b.CardImage != null ? b.CardImage.FileName : null
                     })
                     .ToList();
 
@@ -4434,6 +4749,40 @@ namespace TfShop.Controllers
                         Title = b.Titledigipay,
                         Description = b.Descriptiondgpay,
                         Image = b.AttachementIddgpay.HasValue && b.Imagedgpay != null ? b.Imagedgpay.FileName : null
+                    })
+                    .ToList();
+
+                // معادل همون الگو برای اسنپ‌پی - بازه‌ی Min/MaxBasketPricesnappay.
+                // نکته: برخلاف torob/dgpay، اینجا AttachementIdsnappay چک نمی‌شه چون توی مدلِ
+                // مشترکِ Domain برای Imagesnappay هیچ HasOptional/HasForeignKey تعریف نشده، پس EF
+                // خودش ستونِ سایه‌ی Imagesnappay_Id رو می‌سازه و FK واقعی همونه (نه
+                // AttachementIdsnappay که بلااستفاده مونده). عمداً دست‌نخورده می‌مونه تا با پنلِ
+                // ادمین - که همین مدلِ مشترک رو استفاده می‌کنه - هم‌راستا بمونه.
+                var snappayAccountEntities = uow.BankAccountRepository.GetQueryList().AsNoTracking()
+                    .Include("Imagesnappay")
+                    .Where(x => x.IsActive && x.LanguageId == 1 && x.snappay
+                        && (x.MinBasketPricesnappay == 0 || basketPriceForCard >= x.MinBasketPricesnappay)
+                        && (x.MaxBasketPricesnappay == 0 || basketPriceForCard <= x.MaxBasketPricesnappay))
+                    .OrderBy(x => x.DisplayOrder)
+                    .ToList();
+
+                // گایدلاینِ اسنپ‌پی: عنوان و توضیحِ کنارِ لوگو باید داینامیک و از پاسخِ سرویسِ
+                // eligible باشه (فیلدهای title_message و description)، نه متنِ ثابتِ پنلِ ادمین.
+                // متنِ پنل فقط به‌عنوانِ fallback می‌مونه تا اگه سرویس در دسترس نبود، ردیفِ درگاه
+                // بدونِ متن نمونه. خطا هیچ‌وقت صفحه‌ی پرداخت رو نمی‌شکنه.
+                var snappayBankAccounts = snappayAccountEntities
+                    .Select(b =>
+                    {
+                        string eligibleTitle, eligibleDescription;
+                        GetSnappEligibleMessages(b, basketPriceForCard * 10, out eligibleTitle, out eligibleDescription);
+
+                        return new
+                        {
+                            b.Id,
+                            Title = !string.IsNullOrWhiteSpace(eligibleTitle) ? eligibleTitle : b.Titlesnapppay,
+                            Description = !string.IsNullOrWhiteSpace(eligibleDescription) ? eligibleDescription : b.Descriptionsnapp,
+                            Image = b.Imagesnappay != null ? b.Imagesnappay.FileName : null
+                        };
                     })
                     .ToList();
 
@@ -4551,6 +4900,7 @@ namespace TfShop.Controllers
                     int commissionPercent = paymentType == 7 ? selectedBankAccount.Commisiontorob
                         : paymentType == 3 ? selectedBankAccount.Commisioncard
                         : paymentType == 8 ? selectedBankAccount.Commisiondgpay
+                        : paymentType == 9 ? selectedBankAccount.Commisionsnappay
                         : selectedBankAccount.Commision;
                     if (commissionPercent > 0)
                     {
@@ -4569,6 +4919,7 @@ namespace TfShop.Controllers
                         NotvalidBox = basketStep1.NotvalidBox
                     },
                     bankAccounts = bankAccounts,
+                    userGiftCodes = userGiftCodes,
                     cardBankAccounts = cardBankAccounts,
                     basketShippings = basketShippingRows,
                     sumShippingCost = sumShippingCost,
@@ -4577,6 +4928,7 @@ namespace TfShop.Controllers
                     cashBankAccounts = cashBankAccounts,
                     torobBankAccounts = torobBankAccounts,
                     dgpayBankAccounts = dgpayBankAccounts,
+                    snappayBankAccounts = snappayBankAccounts,
                     offPrice = offPrice,
                     offPriceType = offPriceType,
                     userCurrentBon = userCurrentBon,
@@ -4612,7 +4964,11 @@ namespace TfShop.Controllers
 
             if (!string.IsNullOrEmpty(codeGift))
             {
-                var offer = uow.UserCodeGiftRepository.Get(x => new { x.MaxValue, x.OfferId, x.Value, x.CodeType, x.Offer.CodeTypeValueCode, x.Offer.offerProductCategories }, x => x.UserId == userid && x.Code == codeGift, null, "Offer.offerProductCategories").FirstOrDefault();
+                // یک کاربر می‌تواند چند ردیف با همین کد داشته باشد (مثلاً یکی از پیشنهادِ قدیمیِ
+                // پاک‌شده). هر سه جایی که کدِ کاربر را می‌خوانند (اعتبارسنجی، همین محاسبه، و
+                // OrderService.AddOrder) باید یک ردیف را انتخاب کنند: فقط پیشنهادِ پاک‌نشده، و
+                // اگر باز هم بیشتر از یکی بود جدیدترین.
+                var offer = uow.UserCodeGiftRepository.Get(x => new { x.MaxValue, x.OfferId, x.Value, x.CodeType, x.Offer.CodeTypeValueCode, x.Offer.offerProductCategories }, x => x.UserId == userid && x.Code == codeGift && x.Offer.IsDeleted == false, q => q.OrderByDescending(s => s.Id), "Offer.offerProductCategories").FirstOrDefault();
                 if (offer != null)
                 {
                     if (offer.CodeTypeValueCode == 3)
@@ -4711,7 +5067,8 @@ namespace TfShop.Controllers
                 DateTime date = DateTime.Now;
                 var catIds = GetBasketCatIds(BasketItems);
 
-                var usercode = uow.UserCodeGiftRepository.Get(x => new { x.Offer.offerProductCategories, x.Offer, x.UserCodeGiftLogs, x.Code, x.CountUse, x.IsActive, x.MaxValue, x.Offer.ExpireDate, x.Offer.StartDate, eeExpireDate = x.ExpireDate }, x => x.UserId == userid && x.Code == code && x.Offer.IsDeleted == false, null, "Offer,UserCodeGiftLogs,Offer.offerProductCategories").FirstOrDefault();
+                // همان انتخابِ ردیفِ OrderService.AddOrder و محاسبه‌ی تخفیفِ سبد: پیشنهادِ پاک‌نشده، جدیدترین
+                var usercode = uow.UserCodeGiftRepository.Get(x => new { x.Offer.offerProductCategories, x.Offer, x.UserCodeGiftLogs, x.Code, x.CountUse, x.IsActive, x.MaxValue, x.Offer.ExpireDate, x.Offer.StartDate, eeExpireDate = x.ExpireDate }, x => x.UserId == userid && x.Code == code && x.Offer.IsDeleted == false, q => q.OrderByDescending(s => s.Id), "Offer,UserCodeGiftLogs,Offer.offerProductCategories").FirstOrDefault();
                 if (usercode == null)
                 {
                     var generalcode = uow.GeneralCodeGiftRepository.Get(x => new { x.Offer.offerProductCategories, x.generalCode, x.Offer, x.GeneralCodeGiftLogs, x.Code, x.CountUse, x.IsActive, x.MaxValue, x.Offer.ExpireDate, x.Offer.StartDate }, x => (x.Code == code || x.GeneralCodeGiftLists.Any(b => b.Code == code)) && x.Offer.IsDeleted == false, null, "Offer,GeneralCodeGiftLists,GeneralCodeGiftLogs,GeneralCodeGiftLogs.Order,Offer.offerProductCategories").FirstOrDefault();
@@ -4938,6 +5295,124 @@ namespace TfShop.Controllers
 
                 var bankBankId = uow.BankAccountRepository.Get(x => x.BankId, x => x.Id == bankid).SingleOrDefault();
 
+                // ----- پیامکِ سفارشِ استعلامی (مدیر + کاربر) -----
+                // سفارشِ استعلامی تا تاییدِ ادمین اصلاً به مرحله‌ی پرداخت نمی‌رسه، پس هیچ‌وقت به
+                // FinalizeOrderPayment (تنها جایی که پیامکِ «ثبت سفارش جدید» فرستاده می‌شه) نمی‌رسید
+                // و در عمل نه ادمین خبردار می‌شد نه کاربر.
+                //
+                // توی سایتِ قدیمی این کار توی CartController.WaitingForConfirmation انجام می‌شد -
+                // یعنی لحظه‌ای که کاربر صفحه‌ی «در انتظار تایید» رو باز می‌کرد. اون‌جا هم با فلگِ
+                // AdminNotification از ارسالِ دوباره جلوگیری می‌شد. این‌جا عمداً به لحظه‌ی *ساختِ*
+                // سفارش منتقل شده: توی فرانتِ جدید صفحه‌ی معادلی که حتماً لود بشه وجود نداره، و
+                // وابسته‌کردنِ خبردارشدنِ ادمین به اینکه کاربر یه صفحه‌ی خاص رو باز کنه شکننده‌ست.
+                //
+                // دقیقاً یک بار اجرا می‌شه چون AddOrder فقط یک بار برای هر سفارش صدا زده می‌شه؛
+                // AdminNotification هم مثل قبل ست می‌شه تا اگر جای دیگه‌ای بهش تکیه شد درست باشه.
+                // این لاگ همیشه (چه استعلامی چه نه) نوشته می‌شه. بدونش وقتی پیامک نمی‌رسه اصلاً
+                // معلوم نیست مشکل کجاست: isEstelam غلط بوده؟ سفارش پیدا نشده؟ متنِ الگو خالی
+                // بوده؟ یا پیامک رفته و خودِ سرویسِ پیامک ردش کرده؟ (نکته‌ی مهم: SendSMSAsync
+                // در صورتِ شکست استثنا پرتاب نمی‌کنه، فقط با تگِ SendSmsJob لاگ می‌زنه و ردیف
+                // رو توی UnSentMessages می‌ذاره - پس catchِ پایین هیچ‌وقت اون حالت رو نمی‌گیره.)
+                Infrastructure.EventLog.Logger.Add(5, "api", "addorder-estelam-check", true, 200,
+                    "order=" + orderId + " isEstelam=" + isEstelam, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+
+                if (isEstelam)
+                {
+                    try
+                    {
+                        string frontendUrlEstelam = System.Configuration.ConfigurationManager.AppSettings["NextJsFrontendUrl"] ?? "";
+                        var estelamOrder = uow.OrderRepository.Get(x => x, x => x.BankOrderId == orderId, null,
+                            "User.CityEntity.Province,OrderWallets.Wallet,OrderDeliveries.ProductSendWay,OrderDeliveries.UserAddress.CityEntity").FirstOrDefault();
+
+                        if (estelamOrder != null)
+                        {
+                            var estelamUser = estelamOrder.User;
+                            string estelamCity = (estelamUser != null && estelamUser.CityId.HasValue)
+                                ? estelamUser.CityEntity.Name
+                                : (estelamOrder.OrderDeliveries.Any() && estelamOrder.OrderDeliveries.First().UserAddress != null
+                                    ? estelamOrder.OrderDeliveries.First().UserAddress.CityEntity.Name
+                                    : "");
+                            string estelamPrice = string.Format("{0:n0}", estelamOrder.OrderWallets.First().Wallet.Price);
+                            string estelamSendWay = (estelamOrder.OrderDeliveries.Any() && estelamOrder.OrderDeliveries.First().ProductSendWay != null)
+                                ? estelamOrder.OrderDeliveries.First().ProductSendWay.Title : "";
+
+                            var smsEstelam = new SmsService();
+                            var msgEstelam = new IdentityMessage();
+
+                            // ۱) مدیر - آخرین پارامتر (جایگاهِ نامِ بانک) عیناً مثلِ سایتِ قدیمی «استعلامی» می‌ره
+                            msgEstelam.Destination = setting.Mobile;
+                            msgEstelam.Body = Infrastructure.Sms.Pattern.GetSmsBody(SmsPatternType.ثبت_سفارش_جدید_مدیر, estelamUser.Id, estelamOrder.CustomerOrderId, frontendUrlEstelam + "/profile/detail/" + estelamOrder.CustomerOrderId, frontendUrlEstelam + "/profile/rate/" + estelamOrder.CustomerOrderId, null, null, estelamSendWay, OrderStatus.تایید_پرداخت.EnumDisplayNameFor(), estelamPrice, estelamCity, null, frontendUrlEstelam + "/profile/edit", "استعلامی", null, null, null, null, null, null, null, null, null, "استعلامی");
+                            if (!string.IsNullOrEmpty(msgEstelam.Body))
+                                await smsEstelam.SendSMSAsync(msgEstelam, "NewOrderAdmin", "استعلامی", null, null, estelamPrice, estelamCity, true);
+
+                            estelamOrder.AdminNotification = true;
+                            uow.OrderRepository.Update(estelamOrder);
+                            uow.Save();
+
+                            // ۲) کاربر - الگوی مخصوصِ استعلامی (نه «ثبت سفارش جدید(کاربر)»)
+                            msgEstelam.Destination = estelamUser.PhoneNumber;
+                            msgEstelam.Body = Infrastructure.Sms.Pattern.GetSmsBody(SmsPatternType.ثبت_سفارش_جدید_استعلامی_کاربر, estelamUser.Id, estelamOrder.CustomerOrderId, frontendUrlEstelam + "/profile/detail/" + estelamOrder.CustomerOrderId, frontendUrlEstelam + "/profile/rate/" + estelamOrder.CustomerOrderId, null, null, null, OrderStatus.تایید_پرداخت.EnumDisplayNameFor(), estelamPrice, estelamCity, null, frontendUrlEstelam + "/profile/edit", "استعلامی");
+                            if (!string.IsNullOrEmpty(msgEstelam.Body))
+                                await smsEstelam.SendSMSAsync(msgEstelam, "NewEstelamAdd", estelamUser.FirstName, estelamOrder.CustomerOrderId, estelamPrice, null, null, true);
+
+                            Infrastructure.EventLog.Logger.Add(5, "api", "addorder-estelam-sms", true, 200,
+                                "order=" + orderId
+                                + " | adminTo=" + (setting.Mobile ?? "(null)")
+                                + " | userTo=" + (estelamUser.PhoneNumber ?? "(null)")
+                                + " | userBodyLen=" + (msgEstelam.Body == null ? 0 : msgEstelam.Body.Length),
+                                DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                        }
+                        else
+                        {
+                            Infrastructure.EventLog.Logger.Add(5, "api", "addorder-estelam-sms", false, 500,
+                                "order=" + orderId + " | سفارش برای ارسال پیامک پیدا نشد",
+                                DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                        }
+                    }
+                    catch (Exception smsEx)
+                    {
+                        // شکستِ پیامک نباید ثبتِ سفارش رو خراب کنه - سفارش ساخته شده و کاربر باید
+                        // پاسخِ موفق بگیره. فقط لاگ می‌شه تا قابلِ پیگیری باشه.
+                        Infrastructure.EventLog.Logger.Add(5, "api", "addorder-estelam-sms", false, 500,
+                            "order=" + orderId + " | " + smsEx.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                    }
+                }
+
+                // ----- کم‌کردنِ موجودی -----
+                // تا الان تنها صداکننده‌ی UpdateQuantity اکشنِ OnlinePay بود، و فرانت برای
+                // کارت‌به‌کارت(3)/کارتخوان(4)/نقدی(5) اصلاً OnlinePay رو صدا نمی‌زنه (بعد از
+                // AddOrder مستقیماً مرحله‌ی بعدی رو نشون می‌ده). نتیجه این بود که سفارشِ
+                // کارت‌به‌کارت ثبت می‌شد ولی موجودیِ کالا دست‌نخورده می‌موند و همون کالا
+                // می‌تونست دوباره فروخته بشه. سایتِ قدیم این کار رو جداگانه توی
+                // CartController.CardPay/Pos/Cash/Receipt هم انجام می‌داد.
+                //
+                // این‌جا (نه توی شاخه‌ی هر روش) صدا زده می‌شه تا هر روشِ پرداختِ جدیدی هم
+                // خودکار پوشش داده بشه. UpdateQuantity با فلگِ OrderRow.Decrease ایدمپوتنت ـه،
+                // پس صدازدنِ دوباره‌ش توی OnlinePay بی‌اثره.
+                //
+                // سفارشِ استعلامی عمداً مستثناست: تا تاییدِ ادمین وارد مرحله‌ی پرداخت نمی‌شه و
+                // توی سایتِ قدیم هم موجودیش این‌جا کم نمی‌شد.
+                if (!isEstelam)
+                {
+                    var createdOrder = uow.OrderRepository.Get(x => x, x => x.BankOrderId == orderId, null, "OrderRows").FirstOrDefault();
+                    if (createdOrder == null)
+                    {
+                        Infrastructure.EventLog.Logger.Add(5, "api", "addorder-updatequantity", false, 500,
+                            "order=" + orderId + " | سفارش برای کم‌کردن موجودی پیدا نشد", DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                    }
+                    else
+                    {
+                        var inforder = new TfShop.Infrastructure.Cart.order();
+                        bool decreased = inforder.UpdateQuantity(createdOrder);
+
+                        // شکستِ کم‌کردنِ موجودی نباید ثبتِ سفارش رو برگردونه (سفارش ساخته شده و
+                        // پولِ کاربر ممکنه همین حالا در راه باشه)، ولی حتماً باید دیده بشه.
+                        Infrastructure.EventLog.Logger.Add(5, "api", "addorder-updatequantity", decreased,
+                            decreased ? 200 : 500, "order=" + orderId + " paymentType=" + payType,
+                            DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                    }
+                }
+
                 return Json(new
                 {
                     bankid = bankBankId,
@@ -4950,7 +5425,11 @@ namespace TfShop.Controllers
             }
             catch (Exception ex)
             {
-                Infrastructure.EventLog.Logger.Add(5, "api", "addorder", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                // متنِ کامل (با stack trace) نه فقط Message - بدونِ خطِ کد، «Object reference not
+                // set...» هیچ سرنخی نمی‌ده
+                string addOrderErr = ex.ToString();
+                if (addOrderErr.Length > 4000) addOrderErr = addOrderErr.Substring(0, 4000);
+                Infrastructure.EventLog.Logger.Add(5, "api", "addorder", false, 500, addOrderErr, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
                 return Json(new
                 {
                     Message = "خطایی رخ داد.",
@@ -4983,7 +5462,9 @@ namespace TfShop.Controllers
                     return Json(new { url = "/cart/temporarilyClosed", statusCode = 404 }, JsonRequestBehavior.AllowGet);
 
                 DateTime dtTime = DateTime.Now;
-                string include = "OrderStates,OrderWallets,OrderWallets.Wallet,OrderWallets.Wallet.BankAccount.BankAccountOnlineInfo,User,OrderRows.Product.ProductCategories,OrderRows.Product.Brand";
+                // OrderAttributeSelects.OrderAttribute برای خواندنِ هزینه‌ی ارسال (DataType==14) لازمه -
+                // بدونش SnappPayStart هزینه‌ی ارسال رو صفر می‌دید و سبدِ ارسالی به اسنپ‌پی جمع نمی‌خورد.
+                string include = "OrderStates,OrderWallets,OrderWallets.Wallet,OrderWallets.Wallet.BankAccount.BankAccountOnlineInfo,User,OrderRows.Product.ProductCategories,OrderRows.Product.Brand,OrderAttributeSelects.OrderAttribute";
 
                 var order = uow.OrderRepository.Get(x => x, x => !x.OrderStates.Any(s => s.state > OrderStatus.تایید_سفارش) && x.ExpireDate > dtTime && x.BankOrderId == id && x.UserId == userid, null, include).FirstOrDefault();
 
@@ -5012,6 +5493,14 @@ namespace TfShop.Controllers
                     return Json(new { Message = "سفارش یافت نشد.", url = "/", statusCode = 404 }, JsonRequestBehavior.AllowGet);
                 }
 
+                // معادلِ inforder.UpdateQuantity(order) توی CartController.OnlinePay قدیمی - نسخه‌ی
+                // API این‌جا هیچ‌وقت این رو صدا نمی‌زد (نه قبل از استخراج، نه بعدش)، یعنی موجودی
+                // هیچ‌وقت کم نمی‌شد. خودِ UpdateQuantity idempotent ـه (فقط OrderRow هایی که
+                // Decrease=false ان رو پردازش می‌کنه و بعدش true می‌کنه)، پس صدازدنش این‌جا (قبل از
+                // هر ریدایرکتِ درگاه/کارت‌به‌کارت) با ورودهای بعدی به همین صفحه هم مشکلی نداره.
+                TfShop.Infrastructure.Cart.order inforder = new TfShop.Infrastructure.Cart.order();
+                inforder.UpdateQuantity(order);
+
                 if (!order.OrderStates.Any(x => x.state == OrderStatus.تایید_سفارش))
                     return Json(new { url = "/cart/waitingforconfirmation", statusCode = 404 }, JsonRequestBehavior.AllowGet);
 
@@ -5022,6 +5511,9 @@ namespace TfShop.Controllers
 
                 if (wallet.PaymentType == 8)
                     return await DgpayPayStart(order, wallet);
+
+                if (wallet.PaymentType == 9)
+                    return await SnappPayStart(order, wallet);
 
                 if (wallet.PaymentType == 3)
                 {
@@ -5185,6 +5677,475 @@ namespace TfShop.Controllers
             {
                 Infrastructure.EventLog.Logger.Add(5, "api", "torobpay", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
                 return Json(new { Message = "عدم اتصال به درگاه ترب: " + ex.Message, statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // آدرسِ پایه‌ی اسنپ‌پی از Web.config خونده می‌شه تا سوییچِ staging→production بدونِ تغییرِ کد
+        // ممکن باشه. مقدارِ پیش‌فرض همون staging ئه.
+        private static string SnappPayBaseUrl
+        {
+            get
+            {
+                var v = System.Configuration.ConfigurationManager.AppSettings["SnappPayBaseUrl"];
+                if (string.IsNullOrWhiteSpace(v))
+                    v = "https://fms-gateway-staging.apps.public.okd4.teh-1.snappcloud.io";
+                return v.TrimEnd('/');
+            }
+        }
+
+        // شِمای پاسخِ موفقِ verify/settle اسنپ‌پی توی مستندات نیومده و بدونِ یک پرداختِ واقعی هم
+        // قابلِ کشف نیست (روی staging، verify روی تراکنشِ پرداخت‌نشده خطای 1011 می‌ده). برای همین
+        // به‌جای map کردنِ یک شِمای حدسی، کلِ JSON خام ذخیره می‌شه و کدِ پیگیری «بهترین‌تلاش» از
+        // بینِ نام‌های محتمل بیرون کشیده می‌شه - هر جای درختِ JSON که باشه.
+        // عمداً transactionId/transaction_id/orderId این‌جا نیستن: اون‌ها همون BankOrderIdِ خودمونن
+        // که موقعِ گرفتنِ token فرستادیم و اسنپ‌پی فقط echo می‌کنه (پایین‌تر، ساختِ vm رو ببینید).
+        // اگه توی این لیست می‌موندن، SnappTrackingCode با شناسه‌ی سفارشِ خودمون پر می‌شد و همون
+        // به‌عنوانِ «کد پیگیریِ پرداخت» به مشتری نشون داده می‌شد - که نه برای مشتری معنی داره نه
+        // برای مغایرت‌گیری با اسنپ‌پی به درد می‌خوره.
+        //
+        // با پرداختِ موفقِ واقعی تست شد: verify و settle و حتی endpointِ status هیچ‌کدوم کدِ
+        // پیگیریِ بانکی (RRN/TraceNo) برنمی‌گردونن - خروجیِ status فقط
+        // {"transactionId":"<همون BankOrderId>","status":"SETTLE","amount":60000} بود.
+        // پس تنها شناسه‌ی واقعیِ تراکنش سمتِ اسنپ‌پی همون paymentToken ئه و کد پایین‌تر درست
+        // به همون fallback می‌کنه (عیناً مثلِ ترب‌پی که TorobPaymentToken رو traceno می‌فرسته).
+        // این کلیدها برای این نگه داشته شدن که اگه اسنپ‌پی بعداً کدِ واقعی اضافه کرد، خودکار برداشته بشه.
+        private static readonly string[] SnappTrackingKeys = new[]
+        {
+            "trackingCode", "tracking_code", "referenceNumber", "reference_number",
+            "refNum", "rrn", "bankRRN"
+        };
+
+        // WebClient روی پاسخ‌های غیر ۲xx استثنا پرتاب می‌کنه و بدنه‌ی پاسخ رو دور می‌ندازه - در حالی
+        // که تمامِ اطلاعاتِ مفیدِ اسنپ‌پی (errorCode و پیامِ فارسی) دقیقاً توی همون بدنه‌ست. مثلاً
+        // خطای ۴۰۳ می‌تونه یعنی «آدرس بازگشت معتبر نیست» (کد ۱۰۵۱) باشه که بدونِ این تابع هیچ‌وقت
+        // معلوم نمی‌شد. این‌جا بدنه رو از دلِ استثنا بیرون می‌کشیم.
+        private static string ReadWebExceptionBody(Exception ex)
+        {
+            var webEx = ex as System.Net.WebException;
+            if (webEx == null || webEx.Response == null) return null;
+            try
+            {
+                using (var stream = webEx.Response.GetResponseStream())
+                {
+                    if (stream == null) return null;
+                    using (var reader = new StreamReader(stream, System.Text.Encoding.UTF8))
+                        return reader.ReadToEnd();
+                }
+            }
+            catch { return null; }
+        }
+
+        // پیامِ خوانا برای نمایش/لاگ: اگه بدنه‌ی خطا JSON اسنپ‌پی باشه، errorCode و message واقعی
+        // رو بیرون می‌کشه؛ وگرنه به پیامِ خودِ استثنا برمی‌گرده.
+        private static string DescribeSnappError(Exception ex, out string rawBody)
+        {
+            rawBody = ReadWebExceptionBody(ex);
+            if (!string.IsNullOrWhiteSpace(rawBody))
+            {
+                try
+                {
+                    var root = Newtonsoft.Json.Linq.JToken.Parse(rawBody);
+                    var code = root.SelectToken("$..errorCode");
+                    var msg = root.SelectToken("$..message");
+                    if (code != null || msg != null)
+                        return (msg != null ? msg.ToString() : "") +
+                               (code != null ? " (کد " + code + ")" : "");
+                }
+                catch { /* بدنه JSON نبود - خامش رو برمی‌گردونیم */ }
+                return rawBody.Length > 300 ? rawBody.Substring(0, 300) : rawBody;
+            }
+            return ex.Message;
+        }
+
+        private static string ExtractSnappTrackingCode(string rawJson)
+        {
+            if (string.IsNullOrWhiteSpace(rawJson)) return null;
+            try
+            {
+                var root = Newtonsoft.Json.Linq.JToken.Parse(rawJson);
+                foreach (var key in SnappTrackingKeys)
+                {
+                    // SelectTokens با ".." کلِ درخت رو می‌گرده (پاسخ ممکنه تودرتو باشه)
+                    var hit = root.SelectTokens("$..['" + key + "']")
+                        .FirstOrDefault(t => t.Type != Newtonsoft.Json.Linq.JTokenType.Null
+                                          && !string.IsNullOrWhiteSpace(t.ToString()));
+                    if (hit != null) return hit.ToString();
+                }
+            }
+            catch { /* پاسخِ غیرJSON - همون raw ذخیره می‌شه، چیزی از دست نمی‌ره */ }
+            return null;
+        }
+
+        /// <summary>
+        /// استعلامِ وضعیتِ تراکنش از اسنپ‌پی.
+        ///
+        /// سندِ کدهای خطای اسنپ‌پی صریحاً می‌گه بعد از هر خطای verify/settle/revert/cancel/update
+        /// باید این سرویس صدا زده بشه و بر اساسِ وضعیتِ برگشتی تصمیم گرفته بشه - وگرنه ممکنه
+        /// تراکنش سمتِ اسنپ‌پی در یه وضعیت و سفارش سمتِ ما در وضعیتِ دیگه‌ای بمونه (مغایرتِ مالی).
+        /// خروجیِ response.status یکی از SETTLE / VERIFY / REVERT / CANCEL ئه.
+        ///
+        /// عمداً هیچ استثنایی بیرون نمی‌ده: این یه مسیرِ «تشخیصی»ه و نباید جلوی ریدایرکتِ کاربر
+        /// یا ثبتِ خطای اصلی رو بگیره.
+        /// </summary>
+        private string GetSnappStatus(Domain.Order order, BankAccount bankAccount, out string rawStatus)
+        {
+            rawStatus = "";
+            try
+            {
+                if (order == null || string.IsNullOrEmpty(order.SnappPaymentToken)) return null;
+
+                string accessToken = GetSnappAccessToken(bankAccount);
+                if (string.IsNullOrEmpty(accessToken)) return null;
+
+                using (var client = new System.Net.WebClient())
+                {
+                    client.Encoding = System.Text.Encoding.UTF8;
+                    client.Headers.Clear();
+                    client.Headers.Add("Authorization", "Bearer " + accessToken);
+                    rawStatus = client.DownloadString(SnappPayBaseUrl + "/api/online/payment/v1/status?paymentToken=" + order.SnappPaymentToken);
+                }
+
+                var token = Newtonsoft.Json.Linq.JObject.Parse(rawStatus);
+                var response = token["response"];
+                return (response != null && response["status"] != null) ? response["status"].ToString() : null;
+            }
+            catch (Exception ex)
+            {
+                string body;
+                DescribeSnappError(ex, out body);
+                rawStatus = body ?? ex.Message;
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// وضعیتِ واقعی رو از اسنپ‌پی می‌گیره، روی سفارش ثبت می‌کنه و لاگ می‌زنه.
+        /// بعد از هر خطای verify/settle صدا زده می‌شه.
+        /// </summary>
+        private void SyncSnappStatus(Domain.Order order, BankAccount bankAccount, string reason)
+        {
+            try
+            {
+                string rawStatus;
+                string status = GetSnappStatus(order, bankAccount, out rawStatus);
+
+                order.SnappJson = AppendSnappJson(order.SnappJson, "status(" + reason + ")", rawStatus);
+                if (!string.IsNullOrEmpty(status)) order.SnappStatus = status;
+                uow.OrderRepository.Update(order);
+                uow.Save();
+
+                Infrastructure.EventLog.Logger.Add(5, "api", "snapp-status", !string.IsNullOrEmpty(status), 200,
+                    "order=" + order.BankOrderId + " reason=" + reason + " status=" + (status ?? "-") + " | " + rawStatus,
+                    DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+            }
+            catch { /* مسیرِ تشخیصی - نباید جریانِ اصلی رو بشکنه */ }
+        }
+
+        // شناسه‌هایِ ثابتِ اقلامِ «بیمه» و «بسته‌بندی» در cartItemsِ اسنپ‌پی - همین دو عدد در
+        // SiteAdmin (SnappPayClient) هم استفاده می‌شن تا token و update یکسان باشن.
+        private const long SnappInsuranceItemId = 900000001;
+        private const long SnappPackageItemId = 900000002;
+
+        // جمعِ مقدارِ یک OrderAttribute (به تومان در دیتابیس) روی همه‌ی بسته‌ها، به ریال
+        private static long SumOrderAttrRial(Domain.Order order, int dataType)
+        {
+            long sum = 0;
+            if (order.OrderAttributeSelects == null) return 0;
+            foreach (var attr in order.OrderAttributeSelects.Where(x => x.OrderAttribute != null && x.OrderAttribute.DataType == dataType))
+            {
+                long v;
+                if (long.TryParse(attr.Value, out v)) sum += v * 10;
+            }
+            return sum;
+        }
+
+        // پاسخ‌ها به SnappJson اضافه (نه جایگزین) می‌شن تا مسیرِ کاملِ token→verify→settle بمونه.
+        private static string AppendSnappJson(string existing, string label, string rawJson)
+        {
+            string entry = "[" + label + " @ " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "] " + rawJson;
+            return string.IsNullOrEmpty(existing) ? entry : existing + Environment.NewLine + entry;
+        }
+
+        // اسنپ‌پی شماره رو فقط با الگوی E.164 قبول می‌کنه (‎\+98\d{10}‎) - وگرنه خطای 1005 با
+        // errorField=mobile می‌ده. شماره‌های دیتابیس معمولاً به شکل 09xxxxxxxxx ذخیره شدن.
+        private static string ToSnappMobile(string mobile)
+        {
+            if (string.IsNullOrWhiteSpace(mobile)) return "";
+            var digits = new string(mobile.Where(char.IsDigit).ToArray());
+            if (digits.StartsWith("0098")) digits = digits.Substring(4);
+            else if (digits.StartsWith("98") && digits.Length == 12) digits = digits.Substring(2);
+            else if (digits.StartsWith("0")) digits = digits.Substring(1);
+            return "+98" + digits;
+        }
+
+        // گرفتنِ access_token اسنپ‌پی. برخلافِ ترب (که بدنه‌ی JSON می‌گیره)، این‌جا باید
+        // form-urlencoded با grant_type/scope فرستاده بشه - با تستِ واقعی روی staging تأیید شد.
+        private static string GetSnappAccessToken(Domain.BankAccount model)
+        {
+            using (var client = new System.Net.WebClient())
+            {
+                client.Headers.Clear();
+                var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(model.snappay_client_id + ":" + model.snappay_client_secret);
+                client.Headers.Add("Authorization", "Basic " + Convert.ToBase64String(plainTextBytes));
+
+                var form = new System.Collections.Specialized.NameValueCollection();
+                form["grant_type"] = "password";
+                form["scope"] = "online-merchant";
+                form["username"] = model.snappay_username;
+                form["password"] = model.snappay_password;
+
+                var responseBytes = client.UploadValues(SnappPayBaseUrl + "/api/online/v1/oauth/token", "POST", form);
+                var json = System.Text.Encoding.UTF8.GetString(responseBytes);
+                var data = Newtonsoft.Json.JsonConvert.DeserializeObject<snapp_token>(json);
+                return data == null ? null : data.access_token;
+            }
+        }
+
+        // هم‌ارزِ TorobPayStart برای اسنپ‌پی: oauth → eligible → token، و در آخر gatewayUrl رو
+        // برمی‌گردونه تا فرانت window.location بزنه.
+        /// <summary>
+        /// عنوان و توضیحی که باید کنارِ لوگوی اسنپ‌پی نشان داده شود، از سرویسِ eligible.
+        ///
+        /// این متد روی مسیرِ لودِ صفحه‌ی پرداخت صدا زده می‌شود، پس هیچ خطایی نباید به بیرون
+        /// درز کند و تایم‌اوتِ پیش‌فرضِ ۱۰۰ ثانیه‌ایِ WebClient هم این‌جا قابلِ قبول نیست -
+        /// با SnappTimeoutClient سقفِ کوتاه گذاشته شده.
+        /// </summary>
+        private void GetSnappEligibleMessages(BankAccount model, long amountRial, out string title, out string description)
+        {
+            title = null;
+            description = null;
+
+            try
+            {
+                if (model == null || !model.snappay || amountRial <= 0) return;
+
+                string accessToken = GetSnappAccessToken(model);
+                if (string.IsNullOrEmpty(accessToken)) return;
+
+                using (var client = new SnappTimeoutClient(6000))
+                {
+                    client.Headers.Clear();
+                    client.Headers.Add("Authorization", "Bearer " + accessToken);
+                    client.Headers.Add(System.Net.HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
+
+                    string json = client.DownloadString(SnappPayBaseUrl + "/api/online/offer/v1/eligible?amount=" + amountRial);
+                    var data = Newtonsoft.Json.JsonConvert.DeserializeObject<torobEligible>(json);
+
+                    if (data == null || !data.successful || data.response == null) return;
+
+                    title = data.response.title_message;
+                    description = data.response.description;
+                }
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "snapp-eligible-messages", false, 500,
+                    ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+            }
+        }
+
+        /// <summary>WebClient با تایم‌اوتِ قابلِ تنظیم - برای فراخوانی‌هایی که روی مسیرِ کاربرند.</summary>
+        private class SnappTimeoutClient : System.Net.WebClient
+        {
+            private readonly int timeoutMs;
+
+            public SnappTimeoutClient(int timeoutMs)
+            {
+                this.timeoutMs = timeoutMs;
+            }
+
+            protected override System.Net.WebRequest GetWebRequest(Uri address)
+            {
+                var request = base.GetWebRequest(address);
+                if (request != null)
+                {
+                    request.Timeout = timeoutMs;
+                    var http = request as System.Net.HttpWebRequest;
+                    if (http != null) http.ReadWriteTimeout = timeoutMs;
+                }
+                return request;
+            }
+        }
+
+        private async Task<JsonResult> SnappPayStart(Domain.Order order, Wallet wallet)
+        {
+            var model = wallet.BankAccount;
+            if (model == null || !model.snappay)
+                return Json(new { Message = "عدم فعالسازی درگاه اسنپ‌پی", statusCode = 500 }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                string accessToken = GetSnappAccessToken(model);
+                if (string.IsNullOrEmpty(accessToken))
+                    return Json(new { Message = "عدم اتصال به درگاه اسنپ‌پی", statusCode = 500 }, JsonRequestBehavior.AllowGet);
+
+                long amountRial = wallet.Price * 10;
+
+                using (var client2 = new System.Net.WebClient())
+                {
+                    client2.Headers.Clear();
+                    client2.Headers.Add("Authorization", "Bearer " + accessToken);
+                    client2.Headers.Add(System.Net.HttpRequestHeader.ContentType, "application/json");
+                    string jsonEligible = client2.DownloadString(SnappPayBaseUrl + "/api/online/offer/v1/eligible?amount=" + amountRial);
+                    var dataEligible = Newtonsoft.Json.JsonConvert.DeserializeObject<torobEligible>(jsonEligible);
+                    if (dataEligible == null || !dataEligible.successful || dataEligible.response == null || !dataEligible.response.eligible)
+                        return Json(new { Message = "امکان پرداخت قسطی با اسنپ‌پی برای این مبلغ وجود ندارد", statusCode = 500 }, JsonRequestBehavior.AllowGet);
+                }
+
+                // ----- ساختِ سبد با قراردادی که اسنپ‌پی در بازبینیِ دستی چک می‌کنه -----
+                //     totalAmount = cartItems (کالاها + بیمه + بسته‌بندی) + tax + shipping
+                //     amount      = totalAmount - (discountAmount + externalSourceAmount)
+                // اسنپ‌پی این جمع رو سمتِ سرور اعتبارسنجی نمی‌کنه (روی staging تست شد)، پس
+                // بازبینی دستیه و درست‌بودنِ عددها کاملاً مسئولیتِ ماست.
+                long itemsSumRial = order.OrderRows.Where(x => !x.Disabled).Sum(x => (long)x.Price * x.Quantity) * 10;
+
+                // DataType 14 هزینه‌ی «ارسال» ای است که سایت ذخیره می‌کند و بیمه و بسته‌بندی هم
+                // داخلش جمع شده‌اند. اسنپ‌پی این دو را اقلامِ جدایِ cartItems می‌خواهد و فقط خودِ
+                // ارسال را در shippingAmount؛ برای همین از ۳۴ (بیمه) و ۳۵ (بسته‌بندی) - که
+                // OrderService جدا ذخیره می‌کند - کم می‌شوند. سفارش‌هایِ قدیمی‌تر این دو را ندارند و
+                // همه‌چیز مثلِ قبل در shippingAmount می‌ماند.
+                long sendCostRial = SumOrderAttrRial(order, 14);
+                long insuranceRial = SumOrderAttrRial(order, 34);
+                long packageRial = SumOrderAttrRial(order, 35);
+                long shippingRial = Math.Max(0, sendCostRial - insuranceRial - packageRial);
+
+                // «مالیات» ای که سبدِ خرید برای درگاه‌هایِ قسطی نشان می‌دهد، همان کارمزدِ درصدیِ
+                // درگاه است که OrderService در order.Commision ذخیره می‌کند. (قبلاً این‌جا DataType 15
+                // - مالیاتِ کالا - خوانده می‌شد که در این سایت همیشه صفر است؛ اسنپ‌پی درست گزارش داد
+                // که taxAmount نفرستادیم، و چون مبلغِ پرداختی این کارمزد را داشت ولی totalAmount
+                // نداشت، discountAmount هم منفی و در نتیجه صفر می‌شد.)
+                long taxRial = (order.Commision ?? 0) * 10L;
+
+                long totalRial = itemsSumRial + insuranceRial + packageRial + shippingRial + taxRial;
+                // تخفیف (کدِ تخفیف/بن) = جمعِ کل منهایِ مبلغِ پرداختی. با مالیاتِ درست، این دقیقاً
+                // همان OffPriceِ سفارش است.
+                long discountRial = totalRial - amountRial;
+                if (discountRial < 0)
+                {
+                    // یعنی یه هزینه‌ی مدل‌نشده توی سفارش هست (جمعِ کل از مبلغِ پرداختی کمتره).
+                    // پیلود رو متناقض نمی‌فرستیم؛ هم‌تراز می‌کنیم و برای پیگیری لاگ می‌زنیم.
+                    Infrastructure.EventLog.Logger.Add(5, "api", "snapp-cart-mismatch", false, 500,
+                        "order=" + order.BankOrderId + " items=" + itemsSumRial + " insurance=" + insuranceRial + " package=" + packageRial
+                        + " shipping=" + shippingRial + " tax=" + taxRial + " paid=" + amountRial,
+                        DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                    totalRial = amountRial;
+                    discountRial = 0;
+                }
+
+                var cart = new snappCartList
+                {
+                    // اسنپ‌پی cartId و id را فقط به‌صورت عددی می‌پذیرد (رشته → خطای 1005)
+                    cartId = order.BankOrderId,
+                    taxAmount = taxRial,
+                    totalAmount = totalRial,
+                    shippingAmount = shippingRial,
+                    // اسنپ‌پی خواسته این پارامتر همیشه true باشه (نه مشروط به داشتنِ مالیات)
+                    isTaxIncluded = true,
+                    isShipmentIncluded = true,
+                    cartItems = new List<snappCartItem>()
+                };
+                foreach (var item in order.OrderRows.Where(x => !x.Disabled))
+                {
+                    cart.cartItems.Add(new snappCartItem
+                    {
+                        id = item.ProductId,
+                        name = (item.Product != null && item.Product.Title != null) ? item.Product.Title.Replace("×", "-") : "",
+                        amount = Convert.ToInt64(item.Price) * 10,   // قیمتِ واحد، نه جمعِ سطر
+                        count = item.Quantity,
+                        category = (item.Product != null && item.Product.ProductCategories.Any())
+                            ? item.Product.ProductCategories.First().Name.Replace("×", "-") : ""
+                    });
+                }
+                // بیمه و بسته‌بندی به‌عنوانِ اقلامِ جدا (درخواستِ اسنپ‌پی). شناسه‌ها عددی‌اند (اسنپ‌پی
+                // رشته نمی‌پذیرد) و عمداً خیلی بزرگ تا با شناسه‌ی هیچ کالایی تداخل نکنند.
+                if (insuranceRial > 0)
+                    cart.cartItems.Add(new snappCartItem { id = SnappInsuranceItemId, name = "هزینه بیمه", amount = insuranceRial, count = 1, category = "خدمات" });
+                if (packageRial > 0)
+                    cart.cartItems.Add(new snappCartItem { id = SnappPackageItemId, name = "هزینه بسته‌بندی", amount = packageRial, count = 1, category = "خدمات" });
+
+                // شناسه‌ی سفارش عمداً داخلِ خودِ returnURL هم گذاشته می‌شه.
+                //
+                // دلیل: با لاگِ واقعیِ کال‌بک دیده شد که اسنپ‌پی می‌تونه کاربر رو با یه GETِ کاملاً
+                // بدونِ پارامتر برگردونه (method=GET | url=/apiv1/SnappCallback - بدونِ هیچ
+                // کوئری‌استرینگی). توی اون حالت نه transactionId هست نه paymentToken، یعنی هیچ
+                // راهی برای پیداکردنِ سفارش نمی‌مونه و مشتری‌ای که پولش پرداخت شده صفحه‌ی
+                // «ناموفق» می‌بینه. با این کار، شناسه همیشه برمی‌گرده چون خودمون فرستادیمش.
+                //
+                // اینکه اسنپ‌پی returnURLِ دارای کوئری‌استرینگ رو می‌پذیره (و با whitelistِ دامنه
+                // تداخل نداره) مستقیم روی staging تست و تأیید شد.
+                string returnUrl = model.snappay_callback ?? "";
+                returnUrl += (returnUrl.IndexOf('?') >= 0 ? "&" : "?") + "orderid=" + order.BankOrderId;
+
+                var vm = new
+                {
+                    amount = amountRial,
+                    cartList = new List<snappCartList> { cart },
+                    // مقدارِ ثابتِ ۱۰۰ طبقِ خواسته‌ی اسنپ‌پی (کارمزد کاملاً به عهده‌ی پذیرنده)
+                    commissionType = 100,
+                    discountAmount = discountRial,
+                    externalSourceAmount = 0,
+                    mobile = ToSnappMobile(order.User != null ? order.User.PhoneNumber : ""),
+                    returnURL = returnUrl,
+                    transactionId = order.BankOrderId.ToString()
+                };
+
+                // خودِ درخواست هم کنارِ پاسخ ذخیره می‌شه: اسنپ‌پی در بازبینی عددهایِ همین بدنه رو
+                // چک می‌کنه و بدونِ این، بعداً هیچ راهی نبود ببینیم دقیقاً چی فرستاده شده.
+                string requestJson = Newtonsoft.Json.JsonConvert.SerializeObject(vm);
+                order.SnappJson = AppendSnappJson(order.SnappJson, "token-request", requestJson);
+
+                using (var client = new System.Net.WebClient())
+                {
+                    client.Headers.Clear();
+                    client.Headers.Add("Authorization", "Bearer " + accessToken);
+                    client.Headers.Add(System.Net.HttpRequestHeader.ContentType, "application/json");
+                    client.Encoding = System.Text.Encoding.UTF8;
+                    string jsonToken = client.UploadString(SnappPayBaseUrl + "/api/online/payment/v1/token", "POST", requestJson);
+                    var dataToken = Newtonsoft.Json.JsonConvert.DeserializeObject<torobpayment>(jsonToken);
+
+                    // پاسخ (چه موفق چه ناموفق) قبل از هر تصمیمی ذخیره می‌شه - پاسخِ ناموفق
+                    // errorData.errorCode/message داره که برای پشتیبانی حیاتیه.
+                    order.SnappAmount = amountRial;
+                    order.SnappJson = AppendSnappJson(order.SnappJson, "token", jsonToken);
+
+                    if (dataToken == null || !dataToken.successful || dataToken.response == null)
+                    {
+                        order.SnappStatus = "FAILED";
+                        uow.OrderRepository.Update(order);
+                        uow.Save();
+                        return Json(new { Message = "خطا در ارسال اطلاعات به اسنپ‌پی", statusCode = 500 }, JsonRequestBehavior.AllowGet);
+                    }
+
+                    order.SnappPaymentToken = dataToken.response.paymentToken;
+                    order.SnappStatus = "OK";
+                    uow.OrderRepository.Update(order);
+                    uow.Save();
+
+                    return Json(new { paymentType = 9, gatewayUrl = dataToken.response.paymentPageUrl, statusCode = 200 }, JsonRequestBehavior.AllowGet);
+                }
+            }
+            catch (Exception ex)
+            {
+                // پیامِ واقعیِ اسنپ‌پی از بدنه‌ی پاسخ بیرون کشیده می‌شه (نه فقط "403 Forbidden")
+                string rawBody;
+                string detail = DescribeSnappError(ex, out rawBody);
+
+                // بدنه‌ی خطا روی خودِ سفارش هم ذخیره می‌شه تا برای پشتیبانی/دیباگ بمونه
+                try
+                {
+                    if (order != null)
+                    {
+                        order.SnappStatus = "ERROR";
+                        order.SnappJson = AppendSnappJson(order.SnappJson, "error", rawBody ?? ex.Message);
+                        uow.OrderRepository.Update(order);
+                        uow.Save();
+                    }
+                }
+                catch { /* ذخیره‌ی لاگ نباید جلوی برگردوندنِ پیام رو بگیره */ }
+
+                Infrastructure.EventLog.Logger.Add(5, "api", "snapppay", false, 500, detail + " | " + ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { Message = "عدم اتصال به درگاه اسنپ‌پی: " + detail, statusCode = 500 }, JsonRequestBehavior.AllowGet);
             }
         }
 
@@ -5604,6 +6565,217 @@ namespace TfShop.Controllers
             }
         }
 
+        // کال‌بکِ اسنپ‌پی: verify سپس settle؛ اگه هرکدوم شکست بخوره revert می‌زنه (همون الگوی ترب).
+        //
+        // دو تفاوتِ عمدی با TorobCallback:
+        //  ۱) [HttpPost] نداره - اسنپ‌پی کاربر را با ریدایرکتِ مرورگر (GET) برمی‌گردونه، پس هر دو
+        //     فعل باید قبول بشه.
+        //  ۲) نامِ پارامترهای کوئری‌استرینگِ اسنپ‌پی از مستنداتِ PDF قابلِ استخراج نبود (متنِ PDF
+        //     گلیف‌کد شده)، برای همین دفاعی نوشته شده: هم state/status/result خونده می‌شه، هم
+        //     transactionId/transaction_id، و اگه هیچ‌کدوم نبود با خودِ paymentToken سفارش پیدا می‌شه.
+        public async Task<ActionResult> SnappCallback()
+        {
+            string frontendUrl = System.Configuration.ConfigurationManager.AppSettings["NextJsFrontendUrl"] ?? "";
+            // orderid همونیه که خودمون موقعِ token به returnURL چسبوندیم - تنها شناسه‌ای که
+            // تضمینی برمی‌گرده. دو تای اول اگه اسنپ‌پی فرستاده باشه ترجیح دارن، ولی وقتی
+            // کال‌بک بدونِ پارامتر بیاد این نجات‌دهنده‌ست. (IsNullOrWhiteSpace به‌جای ?? چون
+            // پارامترِ موجود ولی خالی هم باید رد بشه، نه اینکه زنجیره رو قطع کنه.)
+            string transactionId = Request.Params["transactionId"];
+            if (string.IsNullOrWhiteSpace(transactionId)) transactionId = Request.Params["transaction_id"];
+            if (string.IsNullOrWhiteSpace(transactionId)) transactionId = Request.Params["orderid"];
+            if (transactionId == null) transactionId = "";
+            string paymentToken = Request.Params["paymentToken"] ?? Request.Params["payment_token"] ?? "";
+            string state = Request.Params["state"] ?? Request.Params["status"] ?? Request.Params["result"] ?? "";
+
+            // چون نامِ دقیقِ پارامترهای کال‌بکِ اسنپ‌پی توی مستندات نبود، هر بار که اسنپ‌پی این
+            // اکشن رو صدا می‌زنه، متد و تمامِ پارامترهای ورودی (چه query چه form) خام لاگ می‌شن -
+            // حتی توی مسیرِ انصراف/خطا که زودتر return می‌کنه. این‌طوری قرارداد واقعی از روی اولین
+            // کال‌بکِ واقعی مشخص می‌شه، بدون اینکه لازم باشه دوباره پرداخت تست بشه.
+            string rawCallback = "";
+            try
+            {
+                var parts = new List<string>();
+                parts.Add("method=" + Request.HttpMethod);
+                parts.Add("url=" + (Request.Url != null ? Request.Url.PathAndQuery : ""));
+                foreach (string k in Request.QueryString.AllKeys)
+                    if (k != null) parts.Add("q:" + k + "=" + Request.QueryString[k]);
+                if (string.Equals(Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
+                    foreach (string k in Request.Form.AllKeys)
+                        if (k != null) parts.Add("f:" + k + "=" + Request.Form[k]);
+                rawCallback = string.Join(" | ", parts);
+                Infrastructure.EventLog.Logger.Add(5, "api", "snappcallback-in", true, 200, rawCallback, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+            }
+            catch { /* لاگ‌کردن هیچ‌وقت نباید جلوی خودِ کال‌بک رو بگیره */ }
+
+            try
+            {
+                // منطق عمداً «لیست‌سیاه» ئه نه «لیست‌سفید»: فقط وضعیت‌هایی که قطعاً شکستن رد می‌شن،
+                // و هر چیز دیگه‌ای می‌ره سراغ verify.
+                //
+                // قراردادِ واقعیِ کال‌بک، با دو تستِ زنده ثبت شد (POST با فیلدهای فرم):
+                //     موفق   -> state=OK     | amount=1320000 | transactionId=61369
+                //     ناموفق -> state=FAILED | amount=60000   | transactionId=61370
+                // (کوئری‌استرینگ هم orderid رو داره، چون خودمون به returnURL چسبوندیمش.)
+                //
+                // پس مقدارِ موفقیت ("OK") دیگه معلومه، ولی عمداً به لیست‌سفید تغییر نمی‌دیم: اگه
+                // اسنپ‌پی فردا وضعیتِ موفقِ دیگه‌ای اضافه کنه (مثلاً "SUCCESSFUL")، لیست‌سفید اون
+                // پرداختِ موفق رو به‌اشتباه شکست تلقی می‌کرد و verify/settle اجرا نمی‌شد - یعنی پول
+                // از حسابِ مشتری کم می‌شد ولی سفارش نهایی نمی‌شد. با لیست‌سیاه بدترین حالت اینه که
+                // verify روی تراکنشِ ناموفق صدا زده بشه که خودش تمیز شکست می‌خوره (کد 1011) و
+                // revert می‌زنیم. verify منبعِ حقیقته، نه این پارامتر.
+                string[] failureStates = { "FAILED", "FAIL", "CANCELED", "CANCELLED", "ERROR", "DECLINED", "REJECTED" };
+                bool explicitlyFailed = !string.IsNullOrEmpty(state)
+                    && failureStates.Any(s => state.Equals(s, StringComparison.OrdinalIgnoreCase));
+
+                if (explicitlyFailed)
+                {
+                    // انصراف/شکست: پارامترهای ورودی روی خودِ سفارش هم ثبت می‌شن تا سابقه‌ی کامل
+                    // (token → انصراف) کنارِ هم بمونه و بشه فهمید کاربر کجا رها کرده.
+                    try
+                    {
+                        long failOrderId;
+                        Domain.Order failOrder = null;
+                        if (long.TryParse(transactionId, out failOrderId))
+                            failOrder = uow.OrderRepository.Get(x => x, x => x.BankOrderId == failOrderId).FirstOrDefault();
+                        else if (!string.IsNullOrEmpty(paymentToken))
+                            failOrder = uow.OrderRepository.Get(x => x, x => x.SnappPaymentToken == paymentToken).FirstOrDefault();
+
+                        if (failOrder != null)
+                        {
+                            failOrder.SnappStatus = "CANCELED";
+                            failOrder.SnappJson = AppendSnappJson(failOrder.SnappJson, "callback-canceled", rawCallback);
+                            uow.OrderRepository.Update(failOrder);
+                            uow.Save();
+                        }
+                    }
+                    catch { /* ثبتِ سابقه نباید جلوی ریدایرکتِ کاربر رو بگیره */ }
+
+                    return Redirect(frontendUrl + "/cart/paymentresult/snapp/-1?orderid=" + transactionId);
+                }
+
+                try
+                {
+                    Domain.Order order = null;
+                    long orderId;
+                    if (long.TryParse(transactionId, out orderId))
+                        order = uow.OrderRepository.Get(x => x, x => x.BankOrderId == orderId, null, CallbackOrderInclude).SingleOrDefault();
+
+                    if (order == null && !string.IsNullOrEmpty(paymentToken))
+                        order = uow.OrderRepository.Get(x => x, x => x.SnappPaymentToken == paymentToken, null, CallbackOrderInclude).FirstOrDefault();
+
+                    if (order == null)
+                        return Redirect(frontendUrl + "/cart/paymentresult/snapp/-1?orderid=" + transactionId);
+
+                    if (string.IsNullOrEmpty(transactionId))
+                        transactionId = order.BankOrderId.ToString();
+
+                    // اسنپ‌پی مبلغ رو هم توی کال‌بک می‌فرسته. اگه با مبلغی که خودمون ثبت کرده بودیم
+                    // نخونه، فقط لاگ می‌شه (جلوی پرداخت گرفته نمی‌شه، چون منبعِ حقیقتِ مبلغ همون
+                    // چیزیه که موقعِ token ثبت شده و verify/settle روش انجام می‌شه) - ولی برای
+                    // مغایرت‌گیری باید دیده بشه.
+                    string callbackAmount = Request.Params["amount"] ?? "";
+                    long parsedCallbackAmount;
+                    if (!string.IsNullOrEmpty(callbackAmount)
+                        && long.TryParse(callbackAmount, out parsedCallbackAmount)
+                        && order.SnappAmount > 0 && parsedCallbackAmount != order.SnappAmount)
+                    {
+                        Infrastructure.EventLog.Logger.Add(5, "api", "snappcallback-amount-mismatch", false, 500,
+                            "order=" + order.BankOrderId + " sent=" + order.SnappAmount + " callback=" + parsedCallbackAmount,
+                            DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                    }
+
+                    // مثل TorobCallback: مقدارِ اسکالر قبل از ساختِ کوئری جدا محاسبه می‌شه تا EF
+                    // مجبور نشه یه Entity رو داخلِ Expression Tree ترجمه کنه.
+                    var walletId = order.OrderWallets.First().WalletId;
+                    var wallet = uow.WalletRepository.GetQueryList().Include(x => x.WalletAttributeWallets).Include("WalletAttributeWallets.WalletAttribute").FirstOrDefault(c => c.Id == walletId);
+                    var bankAccount = uow.BankAccountRepository.GetQueryList().AsNoTracking().Include(c => c.BankAccountOnlineInfo).FirstOrDefault(c => c.snappay);
+
+                    if (bankAccount == null)
+                        return Redirect(frontendUrl + "/cart/paymentresult/snapp/-2?orderid=" + transactionId);
+
+                    string accessToken = GetSnappAccessToken(bankAccount);
+                    if (string.IsNullOrEmpty(accessToken))
+                        return Redirect(frontendUrl + "/cart/paymentresult/snapp/-2?orderid=" + transactionId);
+
+                    var vmToken = new { paymentToken = order.SnappPaymentToken };
+                    string body = Newtonsoft.Json.JsonConvert.SerializeObject(vmToken);
+
+                    using (var client = new System.Net.WebClient())
+                    {
+                        client.Encoding = System.Text.Encoding.UTF8;
+
+                        client.Headers.Clear();
+                        client.Headers.Add("Authorization", "Bearer " + accessToken);
+                        client.Headers.Add(System.Net.HttpRequestHeader.ContentType, "application/json");
+                        string jsonVerify = client.UploadString(SnappPayBaseUrl + "/api/online/payment/v1/verify", "POST", body);
+                        var dataVerify = Newtonsoft.Json.JsonConvert.DeserializeObject<torobpayment>(jsonVerify);
+
+                        order.SnappJson = AppendSnappJson(order.SnappJson, "verify", jsonVerify);
+                        order.SnappTrackingCode = ExtractSnappTrackingCode(jsonVerify) ?? order.SnappTrackingCode;
+                        order.SnappStatus = (dataVerify != null && dataVerify.successful) ? "VERIFIED" : "VERIFY_FAILED";
+                        uow.OrderRepository.Update(order);
+                        uow.Save();
+
+                        if (dataVerify == null || !dataVerify.successful)
+                        {
+                            client.Headers.Clear();
+                            client.Headers.Add("Authorization", "Bearer " + accessToken);
+                            client.Headers.Add(System.Net.HttpRequestHeader.ContentType, "application/json");
+                            client.UploadString(SnappPayBaseUrl + "/api/online/payment/v1/revert", "POST", body);
+                            // طبقِ سندِ اسنپ‌پی: بعد از خطای verify حتماً استعلامِ وضعیت
+                            SyncSnappStatus(order, bankAccount, "verify-failed");
+                            return Redirect(frontendUrl + "/cart/paymentresult/snapp/-2?orderid=" + transactionId);
+                        }
+
+                        client.Headers.Clear();
+                        client.Headers.Add("Authorization", "Bearer " + accessToken);
+                        client.Headers.Add(System.Net.HttpRequestHeader.ContentType, "application/json");
+                        string jsonSettle = client.UploadString(SnappPayBaseUrl + "/api/online/payment/v1/settle", "POST", body);
+                        var dataSettle = Newtonsoft.Json.JsonConvert.DeserializeObject<torobpayment>(jsonSettle);
+
+                        order.SnappJson = AppendSnappJson(order.SnappJson, "settle", jsonSettle);
+                        order.SnappTrackingCode = ExtractSnappTrackingCode(jsonSettle) ?? order.SnappTrackingCode;
+                        order.SnappStatus = (dataSettle != null && dataSettle.successful) ? "SETTLED" : "SETTLE_FAILED";
+                        uow.OrderRepository.Update(order);
+                        uow.Save();
+
+                        if (dataSettle == null || !dataSettle.successful)
+                        {
+                            client.Headers.Clear();
+                            client.Headers.Add("Authorization", "Bearer " + accessToken);
+                            client.Headers.Add(System.Net.HttpRequestHeader.ContentType, "application/json");
+                            client.UploadString(SnappPayBaseUrl + "/api/online/payment/v1/revert", "POST", body);
+                            // طبقِ سندِ اسنپ‌پی: بعد از خطای settle حتماً استعلامِ وضعیت
+                            SyncSnappStatus(order, bankAccount, "settle-failed");
+                            return Redirect(frontendUrl + "/cart/paymentresult/snapp/-2?orderid=" + transactionId);
+                        }
+
+                        // اگه اسنپ‌پی کدِ پیگیریِ واقعی برگردونده باشه همون ثبت می‌شه، وگرنه
+                        // paymentToken (که همیشه هست) به‌عنوانِ شناسه‌ی قابلِ رهگیری استفاده می‌شه.
+                        string traceCode = !string.IsNullOrWhiteSpace(order.SnappTrackingCode)
+                            ? order.SnappTrackingCode
+                            : order.SnappPaymentToken;
+
+                        await FinalizeOrderPayment(order, wallet, bankAccount, traceCode, order.SnappPaymentToken, "اسنپ‌پی");
+
+                        return Redirect(frontendUrl + "/cart/paymentresult/snapp/1?orderid=" + transactionId + "&traceno=" + traceCode);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    string rawBody;
+                    string detail = DescribeSnappError(ex, out rawBody);
+                    Infrastructure.EventLog.Logger.Add(5, "api", "snappcallback", false, 500, detail + " | " + ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                    return Redirect(frontendUrl + "/cart/paymentresult/snapp/-1?orderid=" + transactionId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "snappcallback", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Redirect(frontendUrl + "/cart/paymentresult/snapp/-1?orderid=" + transactionId);
+            }
+        }
+
         // معادل POST CartController.dgpaycallback() — verify؛ اگه شکست بخوره reverse می‌زنه
         [HttpPost]
         public async Task<ActionResult> DgpayCallback()
@@ -5759,6 +6931,10 @@ namespace TfShop.Controllers
                     {
                         status = 1,
                         customerOrderId = order.CustomerOrderId,
+                        // شناسه‌ی تراکنشِ درگاه - همونی که به‌عنوان transactionId به درگاهِ اقساطی
+                        // فرستاده شده. تا حالا فقط توی شاخه‌ی ناموفق برمی‌گشت (برای لینکِ پرداختِ
+                        // مجدد)؛ اسنپ‌پی الزام کرده بعد از پرداختِ موفق هم به کاربر نشون داده بشه.
+                        bankOrderId = order.BankOrderId,
                         traceno = traceno,
                         isFreeSend = firstDelivery?.ProductSendWay?.FreeOff ?? false,
                         walletPrice = walletPrice,
@@ -5794,8 +6970,10 @@ namespace TfShop.Controllers
 
         // معادل JSON اکشن قدیمی CartController.CardPay (POST) — کاربر بعد از انتقال کارت‌به‌کارت،
         // عکس رسید پرداخت رو آپلود می‌کنه. سفارش باید قبلاً با AddOrder(paymentType=3) ساخته شده باشه.
-        // برخلاف نسخه‌ی قدیمی، پیامک‌ها/UserActivity به عهده‌ی پنل ادمین (روی همون سفارش) گذاشته می‌شه؛
-        // این اکشن فقط عکس رسید رو ثبت می‌کنه تا وضعیت سفارش برای بررسی ادمین آماده بشه.
+        // پیامکِ «ثبت سفارش جدید» برای مدیر و کاربر هم این‌جا فرستاده می‌شه، دقیقاً مثلِ
+        // CartController.CardPay قدیمی و مثلِ اکشنِ خواهرش PayCardPay (مسیرِ /pay).
+        // موقعِ پورت حذف شده بود، پس سفارشِ کارت‌به‌کارت بی‌صدا ثبت می‌شد و نه ادمین خبردار
+        // می‌شد نه کاربر.
         [HttpPost]
         [JWTAuthorize]
         public async Task<JsonResult> CardPay(long BankOrderId, HttpPostedFileBase[] UploadedImages)
@@ -5814,7 +6992,7 @@ namespace TfShop.Controllers
                     && !x.OrderStates.Any(s => s.state == OrderStatus.تایید_پرداخت)
                     && !x.OrderStates.Any(s => s.state == OrderStatus.لغو_شده)
                     && !x.OrderStates.Any(s => s.state == OrderStatus.درخواست_لغو),
-                    null, "OrderWallets.Wallet").FirstOrDefault();
+                    null, "OrderWallets.Wallet.WalletAttributeWallets.WalletAttribute,OrderDeliveries.ProductSendWay,OrderDeliveries.UserAddress.CityEntity,User.CityEntity.Province").FirstOrDefault();
 
                 if (order == null)
                     return Json(new { statusCode = 404 }, JsonRequestBehavior.AllowGet);
@@ -5839,7 +7017,63 @@ namespace TfShop.Controllers
                 uow.OrderRepository.Update(order);
                 await uow.SaveAsync();
 
-                return Json(new { statusCode = 200 }, JsonRequestBehavior.AllowGet);
+                // پیامک‌ها داخلِ try/catchِ جدا - شکستشان نباید ثبتِ رسید را بی‌اثر کند
+                // (رسید ذخیره شده و کاربر باید پاسخِ موفق بگیرد).
+                try
+                {
+                    string frontendUrl = System.Configuration.ConfigurationManager.AppSettings["NextJsFrontendUrl"] ?? "";
+                    var setting = GetSetting();
+                    var sms = new SmsService();
+                    var user = order.User;
+                    var wallet = order.OrderWallets.First().Wallet;
+                    string cityName = (user != null && user.CityId.HasValue) ? user.CityEntity.Name
+                        : (order.OrderDeliveries.Any() && order.OrderDeliveries.First().UserAddress != null ? order.OrderDeliveries.First().UserAddress.CityEntity.Name : "");
+                    string price = string.Format("{0:n0}", wallet.Price);
+                    var msg = new IdentityMessage();
+
+                    // AdminNotification نگه می‌دارد که ادمین یک‌بار خبر شده - اگر کاربر رسید را
+                    // دوباره آپلود کند، پیامکِ مدیر تکرار نمی‌شود.
+                    if (order.AdminNotification == false)
+                    {
+                        bool isestalam = order.OrderWallets.Any(x => x.Wallet.WalletAttributeWallets.Any(sx => sx.WalletAttribute.DataType == 23));
+                        msg.Destination = setting != null ? setting.Mobile : null;
+                        msg.Body = Infrastructure.Sms.Pattern.GetSmsBody(SmsPatternType.ثبت_سفارش_جدید_مدیر, user.Id, order.CustomerOrderId, frontendUrl + "/profile/detail/" + order.CustomerOrderId, frontendUrl + "/profile/rate/" + order.CustomerOrderId, null, null, order.OrderDeliveries.Any() && order.OrderDeliveries.First().ProductSendWay != null ? order.OrderDeliveries.First().ProductSendWay.Title : "", OrderStatus.تایید_پرداخت.EnumDisplayNameFor(), price, cityName, null, frontendUrl + "/profile/edit", (isestalam ? "استعلامی" : "عادی"), null, null, null, null, null, null, null, null, null, "کارت");
+
+                        // اگر شماره‌ی مدیر (Setting.Mobile) یا متنِ الگوی «ثبت سفارش جدید(مدیر)»
+                        // خالی باشد، SendSMSAsync اصلاً صدا زده نمی‌شد و هیچ ردی نمی‌ماند - یعنی
+                        // «پیامک مدیر نرفت» بدونِ هیچ خطایی. حالا هم لاگ می‌شود و هم
+                        // AdminNotification دست‌نخورده می‌ماند تا بعد از رفعِ علت، تلاشِ بعدی
+                        // (آپلودِ دوباره‌ی رسید یا هر مسیرِ دیگر) واقعاً بفرستد.
+                        if (string.IsNullOrEmpty(msg.Destination) || string.IsNullOrEmpty(msg.Body))
+                        {
+                            Infrastructure.EventLog.Logger.Add(5, "api", "cardpay-sms-admin", false, 500,
+                                "پیامک مدیر ارسال نشد | سفارش=" + order.CustomerOrderId
+                                + " | mobile=" + (string.IsNullOrEmpty(msg.Destination) ? "(خالی)" : msg.Destination)
+                                + " | طول متن=" + (msg.Body == null ? 0 : msg.Body.Length),
+                                DateTime.Now, userid);
+                        }
+                        else
+                        {
+                            await sms.SendSMSAsync(msg, "NewOrderAdmin", isestalam ? "استعلامی" : "عادی", null, null, price, cityName, true);
+                            order.AdminNotification = true;
+                            uow.OrderRepository.Update(order);
+                            uow.Save();
+                        }
+                    }
+
+                    msg.Destination = user.UserName;
+                    msg.Body = Infrastructure.Sms.Pattern.GetSmsBody(SmsPatternType.ثبت_سفارش_جدید_کاربر, user.Id, order.CustomerOrderId, frontendUrl + "/profile/detail/" + order.CustomerOrderId, frontendUrl + "/profile/rate/" + order.CustomerOrderId, null, null, null, OrderStatus.تایید_پرداخت.EnumDisplayNameFor(), price, cityName, null, frontendUrl + "/profile/edit");
+                    if (!string.IsNullOrEmpty(msg.Body))
+                        await sms.SendSMSAsync(msg, "NewAddOrder", frontendUrl + "/profile/detail/" + order.CustomerOrderId, null, null, user.FirstName, order.CustomerOrderId, true);
+                }
+                catch (Exception smsEx)
+                {
+                    Infrastructure.EventLog.Logger.Add(5, "api", "cardpay-sms", false, 500, smsEx.Message, DateTime.Now, userid);
+                }
+
+                // شناسه‌ی سفارش برمی‌گردد تا فرانت بتواند در مرحله‌ی آخر مستقیم به جزئیاتِ
+                // همین سفارش لینک بدهد (نه فهرستِ کلیِ سفارش‌ها).
+                return Json(new { customerOrderId = order.CustomerOrderId, statusCode = 200 }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
@@ -7376,6 +8610,226 @@ namespace TfShop.Controllers
         }
 
 
+        /// <summary>
+        /// صفحه‌ی کاملِ جستجو - همان شکلِ خروجیِ GetProductSearch (فیلترِ کناری، مرتب‌سازی،
+        /// صفحه‌بندی) ولی به‌جای یک گروهِ مشخص، روی کلمه‌ی جستجو (q) کار می‌کند.
+        ///
+        /// چرا اکشنِ جدا و نه پارامترِ اختیاری روی GetProductSearch: آن متد از اول تا آخر
+        /// حولِ یک ProductCategory ساخته شده (breadcrumb، FAQ، زیرگروه‌ها، تبلیغاتِ گروه،
+        /// ریدایرکتِ ۳۰۱ به آدرسِ استانداردِ گروه). قاطی‌کردنِ حالتِ بدونِ گروه با آن،
+        /// مسیرِ پرترافیکِ صفحاتِ دسته را هم به خطر می‌انداخت.
+        /// </summary>
+        [HttpGet]
+        public async Task<ActionResult> GetSearchPage(string q, int? sort, int? page, int? perpage, bool mobile)
+        {
+            // قبلاً هر q بلندتر از ۳۰ کاراکتر یا با کاراکترِ غیرحرف (/ - . نیم‌فاصله) رد می‌شد و
+            // بقیه به ۲۰ کاراکتر بریده می‌شد. کشوی جستجوی هدر با کلیک روی هر محصول عنوانِ کاملش
+            // را به این صفحه می‌فرستد (معمولاً ۴۰+ کاراکتر)، پس صفحه همیشه خالی برمی‌گشت. حالا
+            // ورودی پاک‌سازی می‌شود نه رد: موتور q را در بدنه‌ی JSON می‌گیرد (بی‌خطر)، و مسیرِ
+            // fallback که رشته را داخلِ LIKE می‌گذارد فقط نسخه‌ی پاک‌شده (حرف/عدد/فاصله) را.
+            if (String.IsNullOrWhiteSpace(q) || q.Contains("www"))
+                return Json(new { url = "/", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+            q = q.Trim();
+            if (q.Length > 100)
+                q = q.Substring(0, 100);
+            // هر چیزی جز حرف/عدد به فاصله تبدیل می‌شود (نه حذف، تا «3/8» نشود «38»)، و فاصله‌های
+            // تکراری جمع می‌شوند، وگرنه Split توکنِ خالی می‌سازد و LIKE N'%%' همه چیز را می‌گیرد
+            string legacyQ = Regex.Replace(Regex.Replace(q, @"[^\p{L}\p{Nd}]", " "), @"\s+", " ").Trim();
+            if (String.IsNullOrWhiteSpace(legacyQ))
+                return Json(new { url = "/", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                #region مجموعه‌ی تطبیق
+                // موتورِ جستجو شناسه‌ها را می‌دهد؛ این شرط از عددِ خالی ساخته می‌شود پس
+                // امکانِ تزریق ندارد. سقفِ ۲۰۰۰ هم برای این است که هم شرطِ IN منفجر نشود و
+                // هم شمارشِ فیلترها منطقی بماند.
+                List<int> matchIds = null;
+                try
+                {
+                    var engineIds = await Infrastructure.Search.SearchService.ProductIdsAsync(q, 2000);
+                    if (engineIds != null && engineIds.Count > 0)
+                        matchIds = engineIds.ToList();
+                }
+                catch (Exception engineEx)
+                {
+                    Infrastructure.EventLog.Logger.Add(5, "api", "searchpage-engine", false, 500, engineEx.Message,
+                        DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                }
+
+                string matchWhere;
+                if (matchIds != null)
+                {
+                    matchWhere = " products.Id IN (" + string.Join(",", matchIds) + ") ";
+                }
+                else
+                {
+                    // موتور در دسترس نبود -> همان مسیرِ قدیمیِ LIKE تا صفحه خالی نماند.
+                    // هر کلمه باید جایی (برند/عنوان/نام) بیاید - AND، نه OR. با OR یک عنوانِ کامل
+                    // هزاران نتیجه می‌آورد چون هر محصولی که فقط «مجموعه» یا یک عدد داشت هم می‌آمد.
+                    // «مدل/سایز/رنگ» مثلِ مسیرِ قدیمیِ MainSearch3 کنار می‌روند: این‌ها در عنوانِ
+                    // نمایشی هستند ولی جزوِ Title/Name ذخیره‌شده نیستند.
+                    var words = legacyQ.Split(' ')
+                        .Where(w => w.Length > 0 && w != "مدل" && w != "سایز" && w != "رنگ")
+                        .Distinct().Take(12).ToList();
+                    if (words.Count == 0) words.Add(legacyQ);
+                    List<string> whereList = words.Select(w => "( products.BrandId in (select id from Brands where Name LIKE N'%" + w + "%' OR  Title LIKE N'%" + w + "%' OR  PersianName LIKE N'%" + w + "%') OR products.Title LiKE N'%" + w + "%' OR products.Name LiKE N'%" + w + "%' OR Products.LatinName LiKE N'%" + w + "%' )").ToList();
+                    matchWhere = string.Join(" AND ", whereList);
+                }
+
+                // گروه‌های مخفی هیچ‌وقت نباید بیایند - همان قاعده‌ی اکشنِ Search.
+                string hiddenGuard =
+                    " AND NOT ( EXISTS (select 1 from ProductCategorySelect hsel "
+                    + "inner join ProductCategories hcat on hcat.Id = hsel.CatId "
+                    + "where hsel.ProductId = products.Id and hcat.hidden = 1) "
+                    + "AND NOT EXISTS (select 1 from ProductCategorySelect vsel "
+                    + "inner join ProductCategories vcat on vcat.Id = vsel.CatId "
+                    + "where vsel.ProductId = products.Id and vcat.hidden = 0) )";
+
+                // فیلترِ گروه از پارامترِ cat[i]. عمداً این‌جا و نه در getUrlParameter، تا
+                // آن helperِ مشترک (که صفحاتِ دسته/برند/تگ هم از آن استفاده می‌کنند) دست نخورد.
+                string catGuard = "";
+                var selectedCats = new List<int>();
+                foreach (string key in Request.QueryString.AllKeys)
+                {
+                    if (key == null || !key.StartsWith("cat[")) continue;
+                    int cid;
+                    if (int.TryParse(Request.QueryString[key], out cid)) selectedCats.Add(cid);
+                }
+                if (selectedCats.Count > 0)
+                {
+                    catGuard = " AND EXISTS (select 1 from ProductCategorySelect csel "
+                             + "where csel.ProductId = products.Id and csel.CatId IN ("
+                             + string.Join(",", selectedCats) + ")) ";
+                }
+
+                // فراخواننده رشته را داخلِ «and( ... )» می‌گذارد، پس پرانتزِ خودمان لازم است.
+                string where1 = "(" + matchWhere + ")" + hiddenGuard + catGuard;
+                #endregion
+
+                #region محصولات
+                var totlaFilters = getUrlParameter(Server.UrlDecode(Request.RawUrl));
+                totlaFilters.pagenum = page == null ? 1 : page.Value;
+                totlaFilters.perpage = perpage == null ? 20 : perpage.Value;
+                totlaFilters.sortby = sort == null ? 4 : sort.Value;
+                totlaFilters.SearchStr = q;
+                totlaFilters.UrlPathname = Request.Url.AbsolutePath;
+
+                var productSearchResults = uow.ProductAttributeSelectRepository.GetSearchResult(totlaFilters, null, true, null, where1);
+                var totalCount = productSearchResults.Count();
+
+                int skip = (totlaFilters.pagenum - 1) * totlaFilters.perpage;
+                if (skip < 0) skip = 0;
+                if (totlaFilters.perpage == 0) totlaFilters.perpage = 1;
+
+                var paggingModel = new PagingViewModel
+                {
+                    Count = totalCount,
+                    PrevPage = totlaFilters.prevpage,
+                    CurentPage = totlaFilters.pagenum,
+                    PerPage = totlaFilters.perpage,
+                    RawUrl = Request.RawUrl
+                };
+
+                var sorts = productSearchResults.Skip(skip).Take(totlaFilters.perpage).ToList()
+                    .Select(c => new Domain.ViewModel.SearchResultSort { Sort = c.Sort, ProductId = c.ProductId }).ToList();
+                List<int> productids = sorts.Select(x => x.ProductId).ToList();
+                var productItems = uow.ProductRepository.ProductItemList(x => productids.Contains(x.Id), null, 0, 0, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84").ToList();
+
+                List<ProductItem> Products = new List<ProductItem>();
+                foreach (var item in sorts.OrderBy(x => x.Sort))
+                {
+                    var pi = productItems.FirstOrDefault(x => x.Id == item.ProductId);
+                    if (pi != null) Products.Add(pi);
+                }
+                #endregion
+
+                #region فیلترها
+                // فیلترها روی «مجموعه‌ی تطبیقِ q» ساخته می‌شوند نه روی نتیجه‌ی فیلترشده -
+                // وگرنه با انتخابِ یک برند، بقیه‌ی برندها از لیست غیب می‌شدند.
+                List<FilterShowViewModel> filterShowViewModels = new List<FilterShowViewModel>();
+
+                if (matchIds == null)
+                {
+                    // مسیرِ fallback شناسه ندارد؛ یک‌بار سبک درشان می‌آوریم تا فیلترها خالی نماند.
+                    var idFilters = getUrlParameter("");
+                    idFilters.pagenum = 1;
+                    idFilters.perpage = 2000;
+                    idFilters.sortby = 4;
+                    idFilters.SearchStr = q;
+                    matchIds = uow.ProductAttributeSelectRepository
+                        .GetSearchResult(idFilters, null, true, null, "(" + matchWhere + ")" + hiddenGuard)
+                        .Take(2000).ToList().Select(x => x.ProductId).Distinct().ToList();
+                }
+
+                if (matchIds.Count > 0)
+                {
+                    // --- محدوده‌ی قیمت ---
+                    var priceQuery = uow.ProductPriceRepository.GetQueryList().AsNoTracking()
+                        .Where(c => c.IsDefault && c.IsActive && c.Product.IsActive
+                                 && c.Product.state == 4 && c.Product.LanguageId == 1
+                                 && matchIds.Contains(c.ProductId))
+                        .Select(c => c.Price);
+                    if (priceQuery.Any())
+                    {
+                        filterShowViewModels.Add(new FilterShowViewModel()
+                        {
+                            type = "range",
+                            title = "محدوده قیمت مورد نظر",
+                            min = priceQuery.Min(),
+                            max = priceQuery.Max()
+                        });
+                    }
+
+                    // --- گروه کالا ---
+                    var catItems = uow.ProductCategoryRepository.GetQueryList().AsNoTracking()
+                        .Where(c => c.hidden == false && c.Products.Any(pp => matchIds.Contains(pp.Id)))
+                        .Select(c => new FilterShowItems { id = c.Id, name = c.Name })
+                        .ToList();
+                    catItems.ForEach(c => { if (selectedCats.Contains(c.id)) c.checkedd = true; });
+                    if (catItems.Count > 0)
+                        filterShowViewModels.Add(new FilterShowViewModel() { title = "گروه کالا", type = "category", items = catItems });
+
+                    // --- برند ---
+                    var brandItems = uow.ProductRepository.GetQueryList().AsNoTracking()
+                        .Where(c => matchIds.Contains(c.Id) && c.BrandId.HasValue)
+                        .Select(s => new FilterShowItems
+                        {
+                            id = s.BrandId.Value,
+                            name = s.Brand.PersianName,
+                            enname = s.Brand.Name
+                        }).Distinct().ToList();
+                    brandItems.ForEach(c =>
+                    {
+                        if (totlaFilters.BrandViewModels != null && totlaFilters.BrandViewModels.Any(s => s.Value == c.id))
+                            c.checkedd = true;
+                    });
+                    if (brandItems.Count > 0)
+                        filterShowViewModels.Add(new FilterShowViewModel() { title = "برند", type = "brand", items = brandItems });
+                }
+                #endregion
+
+                LogSearchKeyword(q);
+
+                return Json(new
+                {
+                    filters = filterShowViewModels,
+                    q = q,
+                    pagging = paggingModel,
+                    products = Products,
+                    title = "جستجوی " + q,
+                    statusCode = 200
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "getsearchpage", false, 500, ex.Message,
+                    DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { msg = ex.Message, statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         private getUrlParameter getUrlParameter(string rawUrl)
         {
             var model = new getUrlParameter();
@@ -7438,30 +8892,46 @@ namespace TfShop.Controllers
 
         private PriceRange getPriceRange(string[] dataUrlArray)
         {
+            bool has0 = false, has1 = false;
             long price0 = 0;
             long price1 = 0;
+
             foreach (var item in dataUrlArray)
             {
                 if (item.ToLower().Contains("price[0]="))
                 {
-                    var reu = item.Replace("price[0]=", "");
-                    price0 = long.Parse(reu);
+                    long v;
+                    // TryParse و نه Parse: یک مقدارِ خالی یا دست‌کاری‌شده در URL نباید
+                    // کلِ صفحه‌ی لیست را ۵۰۰ کند.
+                    if (long.TryParse(item.Replace("price[0]=", ""), out v))
+                    {
+                        price0 = v;
+                        has0 = true;
+                    }
                 }
                 if (item.ToLower().Contains("price[1]="))
                 {
-                    var reu = item.Replace("price[1]=", "");
-                    price1 = long.Parse(reu);
+                    long v;
+                    if (long.TryParse(item.Replace("price[1]=", ""), out v))
+                    {
+                        price1 = v;
+                        has1 = true;
+                    }
                 }
             }
-            if (price0 != 0 && price1 != 0)
+
+            // قبلاً شرط ‎price0 != 0 && price1 != 0‎ بود، یعنی اگر کاربر فقط کفِ قیمت
+            // (یا فقط سقف) را می‌داد این متد null برمی‌گرداند و هیچ شرطِ قیمتی به
+            // کوئری اضافه نمی‌شد - فیلتر بی‌صدا بی‌اثر می‌شد.
+            // حالا هر طرفی که داده نشده، باز در نظر گرفته می‌شود.
+            if (!has0 && !has1)
+                return null;
+
+            return new PriceRange
             {
-                return new PriceRange
-                {
-                    StartPrice = price0,
-                    EndPrice = price1
-                };
-            }
-            return null;
+                StartPrice = has0 ? price0 : 0,
+                EndPrice = has1 ? price1 : long.MaxValue
+            };
         }
 
         private bool isOnlyInStore(string[] dataUrlArray)
@@ -8343,7 +9813,7 @@ namespace TfShop.Controllers
 
         [CorrectArabianLetter(new string[] { "q" })]
         [Infrastructure.Filter.UserActivitiesFilter]
-        public JsonResult Search(string q, int? page, int? perpage, int? sort)
+        public async Task<JsonResult> Search(string q, int? page, int? perpage, int? sort)
         {
             try
             {
@@ -8368,9 +9838,58 @@ namespace TfShop.Controllers
                         q = q.Substring(0, 20);
 
 
+                // ---------- مجموعه‌ی تطبیق از موتورِ جدید ----------
+                // صفحه‌ی کاملِ جستجو مرتب‌سازیِ خودش رو داره (جدیدترین/ارزان‌ترین/...) و اصلاً
+                // گزینه‌ی «مرتبط‌ترین» نداره؛ پس چیزی که این‌جا باید درست بشه «کدام محصولات
+                // تطبیق می‌خورند» ئه، نه ترتیبشون. به‌همین دلیل خروجیِ موتور فقط به یه شرطِ
+                // ‎IN (…)‎ تبدیل می‌شه و بقیه‌ی خطِ لوله (صفحه‌بندی، مرتب‌سازی، شکلِ خروجی)
+                // دست‌نخورده می‌مونه - یعنی منوی مرتب‌سازی دقیقاً مثل قبل کار می‌کنه.
+                //
+                // این شرط از شناسه‌های عددی ساخته می‌شه، پس برخلافِ مسیرِ LIKE پایین اصلاً
+                // امکانِ تزریق نداره.
+                string where1 = null;
+                try
+                {
+                    var engineIds = await Infrastructure.Search.SearchService.ProductIdsAsync(q, 1000);
+                    if (engineIds != null && engineIds.Count > 0)
+                        where1 = " products.Id IN (" + string.Join(",", engineIds) + ") ";
+                }
+                catch (Exception engineEx)
+                {
+                    Infrastructure.EventLog.Logger.Add(5, "api", "search-engine", false, 500, engineEx.Message,
+                        DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                }
+
+                // موتور در دسترس نبود یا چیزی پیدا نکرد -> همون مسیرِ قدیمی، تا نتیجه‌ی کمتر
+                // از قبل نشون داده نشه.
+                if (where1 == null)
+                {
                 List<CoreLib.ViewModel.SearchParserString> keywords = CoreLib.Infrastructure.CommonFunctions.ParseStringsmall(q);
                 List<string> where1List = keywords.Select(x => " products.BrandId in (select id from Brands where Name LIKE N'%" + x.val + "%' OR  Title LIKE N'%" + x.val + "%' OR  PersianName LIKE N'%" + x.val + "%') OR products.Title LiKE N'%" + x.val + "%' OR products.Name LiKE N'%" + x.val + "%' OR Products.LatinName LiKE N'%" + x.val + "%' OR ProductAttributeSelects.ProductId in (select productid from productprices where  ProductPrices.ProductAttributeSelectModelId IN(select id from ProductAttributeSelects where Value LIKE N'%" + x.val + "%') ) OR ProductAttributeSelects.ProductId in (select productid from productprices where  ProductPrices.ProductAttributeSelectSizeId IN(select id from ProductAttributeSelects where Value LIKE N'%" + x.val + "%')) ").ToList();
-                var where1 = string.Join(" Or ", where1List);
+                    where1 = string.Join(" Or ", where1List);
+                }
+
+                // ---------- حذفِ محصولاتِ گروه‌های مخفی ----------
+                // مسیرِ موتور از قبل پاک است (این محصولات اصلاً وارد ایندکس نمی‌شوند)، ولی
+                // مسیرِ fallbackِ بالا هیچ فیلتری ندارد: برای هر پرس‌وجویی که موتور چیزی
+                // برایش پیدا نکند - مثلاً تکه‌ی وسطِ یک کد مدل مثل «M1306» که Meili از وسطِ
+                // واژه تطبیق نمی‌دهد ولی ‎LIKE '%...%'‎ می‌دهد - محصولِ مخفی برمی‌گشت.
+                // شرط را به هر دو شاخه می‌زنیم تا هیچ مسیری باز نماند.
+                //
+                // نکته‌ی مهم: فراخواننده این رشته را داخلِ «and( ... )» می‌گذارد، پس خودمان
+                // باید پرانتز بگذاریم؛ وگرنه این AND با ORهای fallback قاطی می‌شود و کلِ
+                // شرط معنای دیگری پیدا می‌کند.
+                //
+                // قاعده: «در گروهِ مخفی هست و در هیچ گروهِ غیرمخفی نیست» - نه صرفاً «در یک
+                // گروهِ مخفی هست» - تا اگر روزی محصولی هم‌زمان در یک گروهِ مخفی و یک گروهِ
+                // عادی بود، از نتایج حذف نشود. همان قاعده‌ای که موقعِ ساختِ ایندکس هم هست.
+                where1 = "(" + where1 + ") AND NOT ( "
+                       + "EXISTS (select 1 from ProductCategorySelect hsel "
+                       + "inner join ProductCategories hcat on hcat.Id = hsel.CatId "
+                       + "where hsel.ProductId = products.Id and hcat.hidden = 1) "
+                       + "AND NOT EXISTS (select 1 from ProductCategorySelect vsel "
+                       + "inner join ProductCategories vcat on vcat.Id = vsel.CatId "
+                       + "where vsel.ProductId = products.Id and vcat.hidden = 0) )";
 
                 #region Products
                 var totlaFilters = new getUrlParameter();
@@ -9123,16 +10642,16 @@ namespace TfShop.Controllers
                             string targetFolder = "";
                             if (controllerName != "filemanager")
                                 //targetFolder = Server.MapPath("~/Content/UploadFiles/" + controllerName);
-                            targetFolder = @"C:\inetpub\wwwroot\tfshops\public\UploadFiles\" + controllerName;
+                            targetFolder = @"C:\inetpub\wwwroot\api.tfshops.com\Content\UploadFiles\" + controllerName;
                             else
                                 //targetFolder = Server.MapPath("~/Content/UploadFiles");
-                            targetFolder = @"C:\inetpub\wwwroot\tfshops\public\UploadFiles\";
+                            targetFolder = @"C:\inetpub\wwwroot\api.tfshops.com\Content\UploadFiles\";
                             string targetPath = Path.Combine(targetFolder, fileName);
                             File.SaveAs(targetPath);
                             #endregion
 
                             #region Watermark Compression MultiSize
-                            string UploadPath = @"C:\inetpub\wwwroot\tfshops\public\UploadFiles\" + (controllerName != "filemanager" ? controllerName + @"\" : "");
+                            string UploadPath = @"C:\inetpub\wwwroot\api.tfshops.com\Content\UploadFiles\" + (controllerName != "filemanager" ? controllerName + @"\" : "");
                             //string UploadPath = "~/Content/UploadFiles/" + (controllerName != "filemanager" ? controllerName + "/" : "");
                             if (CoreLib.Infrastructure.Image.ImageClass.IsFileAnImage(UploadPath + fileName))
                             {
@@ -9181,7 +10700,7 @@ namespace TfShop.Controllers
 
 
                             //FileInfo fi = new FileInfo(Server.MapPath("~/Content/UploadFiles/" + newAttchment.FileName));
-                            FileInfo fi = new FileInfo(@"C:\inetpub\wwwroot\tfshops\public\UploadFiles\" + newAttchment.FileName);
+                            FileInfo fi = new FileInfo(@"C:\inetpub\wwwroot\api.tfshops.com\Content\UploadFiles\" + newAttchment.FileName);
                             newAttchment.Capacity = Convert.ToInt32(fi.Length / 1024);
                             uow.AttachmentRepository.Update(newAttchment);
                             uow.Save();
@@ -9200,7 +10719,7 @@ namespace TfShop.Controllers
                                     IImageFormat format;
                                     SixLabors.ImageSharp.Formats.Webp.WebpEncoder encoder = new SixLabors.ImageSharp.Formats.Webp.WebpEncoder();
 
-                                    string filename = @"C:\inetpub\wwwroot\tfshops\public\UploadFiles\" + oattachment.FileName;
+                                    string filename = @"C:\inetpub\wwwroot\api.tfshops.com\Content\UploadFiles\" + oattachment.FileName;
                                     //string filename = Server.MapPath("~/Content/UploadFiles/" + oattachment.FileName);
 
                                     if (System.IO.File.Exists(filename))
@@ -12258,6 +13777,8 @@ namespace TfShop.Controllers
                     Id = order.Id,
                     InsertDate = CoreLib.Infrastructure.DateTime.DateTimeConverter.ChangeMiladiToLongShamsi(order.InsertDate),
                     BankId = order.OrderWallets.First().Wallet.BankAccount.BankId,
+                    PaymentType = order.OrderWallets.First().Wallet.PaymentType,
+                    CustomerIssue = order.CustomerIssue,
                     Price = order.OrderWallets.First().Wallet.Price,
                     IsEstelam = IsEstelam,
                     EstelamDeadlineRaw = order.InsertDate.AddMinutes(setting.ShoppingEstelamMinutes),
@@ -12596,7 +14117,7 @@ namespace TfShop.Controllers
                     CustomerTele = order.UserAddressId.HasValue ? order.UserAddress.PhoneNumber : order.User.PhoneNumber,
                     CustomerTaxNumber = "",
                     ShoppingOrderId = "TF-" + order.BankOrderId,
-                    ShoppingPayWay = order.OrderWallets.First().Wallet.PaymentType == 1 ? "پرداخت آنلاین" : order.OrderWallets.First().Wallet.PaymentType == 2 ? "پرداخت آنلاین" : order.OrderWallets.First().Wallet.PaymentType == 3 ? "کارت به کارت" : order.OrderWallets.First().Wallet.PaymentType == 4 ? "پرداخت به پیک" : order.OrderWallets.First().Wallet.PaymentType == 5 ? "پرداخت به پیک" : order.OrderWallets.First().Wallet.PaymentType == 6 ? "فیش نقدی" : order.OrderWallets.First().Wallet.PaymentType == 7 ? "ترب پِی" : order.OrderWallets.First().Wallet.PaymentType == 8 ? "دیچی پِی" : "---",
+                    ShoppingPayWay = order.OrderWallets.First().Wallet.PaymentType == 1 ? "پرداخت آنلاین" : order.OrderWallets.First().Wallet.PaymentType == 2 ? "پرداخت آنلاین" : order.OrderWallets.First().Wallet.PaymentType == 3 ? "کارت به کارت" : order.OrderWallets.First().Wallet.PaymentType == 4 ? "پرداخت به پیک" : order.OrderWallets.First().Wallet.PaymentType == 5 ? "پرداخت به پیک" : order.OrderWallets.First().Wallet.PaymentType == 6 ? "فیش نقدی" : order.OrderWallets.First().Wallet.PaymentType == 7 ? "ترب پِی" : order.OrderWallets.First().Wallet.PaymentType == 8 ? "دیچی پِی" : order.OrderWallets.First().Wallet.PaymentType == 9 ? "اسنپ‌پی" : "---",
                     ShoppingSenWay = order.OrderAttributeSelects.Any(s => s.OrderAttribute.DataType == 32) ? order.OrderAttributeSelects.Where(s => s.OrderAttribute.DataType == 32).First().Value == "1" ? order.ProductSendWay + " - پس کرایه" : order.ProductSendWay : order.ProductSendWay,
                     ShoppingUserDescr = order.OrderAttributeSelects.Any(s => s.OrderAttribute.DataType == 18) ? order.OrderAttributeSelects.Where(s => s.OrderAttribute.DataType == 18).First().Value : "---",
                     ShoppingSenWayPrice = order.OrderAttributeSelects.Any(s => s.OrderAttribute.DataType == 14) ? Convert.ToInt64(order.OrderAttributeSelects.Where(s => s.OrderAttribute.DataType == 14).First().Value) * 10 : 0,
@@ -12805,6 +14326,687 @@ namespace TfShop.Controllers
                     Message = "خطایی رخ داد.",
                     statusCode = 500
                 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        #region pay - پرداختِ سفارشی که ادمین دستی ثبت کرده
+        // معادلِ payController در سایتِ قدیمی (Controllers/PayController.cs).
+        //
+        // سناریو: ادمین توی پنل برای مشتری دستی سفارش ثبت می‌کنه و لینکِ
+        //     https://www.tfshops.com/pay?id={CustomerOrderId}
+        // رو براش می‌فرسته. مشتری بدونِ اینکه لاگین باشه وارد می‌شه، با کدِ پیامکی احراز هویت
+        // می‌شه و بعد سفارش رو پرداخت می‌کنه (درگاهِ آنلاین یا کارت‌به‌کارت).
+        //
+        // تفاوتِ ساختاریِ عمدی با نسخه‌ی قدیمی: اون‌جا بعد از تاییدِ کد، SignInManager.SignIn
+        // یه کوکیِ OWIN می‌ساخت. استکِ جدید توکنیه، پس این‌جا همون JWT/refreshToken ای که
+        // AuthLogin تولید می‌کنه برگردونده می‌شه تا فرانت روی کوکی‌های atk/rtk بشونه.
+
+        // مرحله‌ی ۱: فقط اطلاعاتِ سفارش. عمداً هیچ اثرِ جانبی‌ای نداره (پیامک نمی‌فرسته) -
+        // چون یه GET ئه و فرانتِ Next.js لینک‌ها رو prefetch می‌کنه؛ اگه ارسالِ پیامک به این
+        // اکشن وصل می‌موند، فقط با دیده‌شدنِ لینک توی صفحه و بدونِ اینکه کاربر کلیک کنه پیامک
+        // می‌رفت. ارسالِ کد توی PaySendCode (که POST ئه) انجام می‌شه.
+        [AllowAnonymous]
+        public JsonResult PayInfo(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return Json(new { Message = "شناسه سفارش نامعتبر است.", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                // اگه id یه CustomerOrderId نبود، همون فال‌بکِ نسخه‌ی قدیمی: چهار رقمِ آخر یه
+                // رشته‌ی تصادفیه و باقی‌مونده BankOrderId، که از CreateOrderKey به سفارش می‌رسه.
+                if (!uow.OrderRepository.Any(x => x.Id, x => x.CustomerOrderId == id))
+                {
+                    if (id.Length <= 4)
+                        return Json(new { Message = "سفارش یافت نشد.", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+                    string randomstring = id.Substring(id.Length - 4, 4);
+                    long bankorderid;
+                    if (!long.TryParse(id.Replace(randomstring, ""), out bankorderid))
+                        return Json(new { Message = "سفارش یافت نشد.", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+                    DateTime dtTime = DateTime.Now;
+                    var firstLastOrderId = uow.CreateOrderKeyRepository.Get(x => x, x => x.Id == bankorderid).FirstOrDefault();
+                    if (firstLastOrderId == null)
+                        return Json(new { Message = "سفارش یافت نشد.", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+                    string customerOrderId = uow.OrderRepository.Get(x => x.CustomerOrderId, x => !x.OrderStates.Any(sx => sx.state > OrderStatus.تایید_سفارش) && x.ExpireDate > dtTime && x.Id == firstLastOrderId.OrderId).FirstOrDefault();
+                    if (customerOrderId == null)
+                        return Json(new { Message = "سفارش یافت نشد.", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+                    id = customerOrderId;
+                }
+
+                DateTime nowdateTime = DateTime.Now;
+                var order = uow.OrderRepository.Get(x => x, x => x.CustomerOrderId == id && x.IsOld == false && x.IsExpire == false && (x.ExpireDate != null && x.ExpireDate > nowdateTime)
+                        && x.OrderStates.Any(sx => sx.state == OrderStatus.تایید_سفارش)
+                        && !x.OrderStates.Any(sx => sx.state == OrderStatus.تایید_پرداخت)
+                        && !x.OrderStates.Any(sx => sx.state == OrderStatus.لغو_شده)
+                        && !x.OrderStates.Any(sx => sx.state == OrderStatus.درخواست_لغو), null, "User").SingleOrDefault();
+
+                if (order == null)
+                    return Json(new
+                    {
+                        Message = "مهلت پرداخت سفارش به اتمام رسیده. می‌توانید با شماره فروشگاه ارتباط برقرار کنید تا دوباره سفارش جدیدی برای شما ثبت شود.",
+                        statusCode = 410
+                    }, JsonRequestBehavior.AllowGet);
+
+                return Json(new
+                {
+                    customerOrderId = order.CustomerOrderId,
+                    firstName = order.User.FirstName,
+                    lastName = order.User.LastName,
+                    phoneNumber = order.User.PhoneNumber,
+                    statusCode = 200
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "payinfo", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { Message = "خطایی رخ داد.", statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // مرحله‌ی ۲: ارسالِ کدِ فعال‌سازی. POST ئه تا prefetchِ فرانت هیچ‌وقت باعثِ ارسالِ
+        // ناخواسته‌ی پیامک نشه.
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<JsonResult> PaySendCode(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return Json(new { Message = "شناسه سفارش نامعتبر است.", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                DateTime nowdateTime = DateTime.Now;
+                var order = uow.OrderRepository.Get(x => x, x => x.CustomerOrderId == id && x.IsOld == false && x.IsExpire == false && (x.ExpireDate != null && x.ExpireDate > nowdateTime)
+                        && x.OrderStates.Any(sx => sx.state == OrderStatus.تایید_سفارش)
+                        && !x.OrderStates.Any(sx => sx.state == OrderStatus.تایید_پرداخت)
+                        && !x.OrderStates.Any(sx => sx.state == OrderStatus.لغو_شده)
+                        && !x.OrderStates.Any(sx => sx.state == OrderStatus.درخواست_لغو), null, "User").SingleOrDefault();
+
+                if (order == null)
+                    return Json(new { Message = "مهلت پرداخت سفارش به اتمام رسیده است.", statusCode = 410 }, JsonRequestBehavior.AllowGet);
+
+                // کاربرِ تاییدشده -> ورودِ دومرحله‌ای، کاربرِ تاییدنشده -> فعال‌سازیِ حساب.
+                // (SetPayCode اگه کدِ قبلی هنوز منقضی نشده "1" برمی‌گردونه تا پیامکِ تکراری نره.)
+                string code = await SetPayCode(order.UserId, order.User.PhoneNumberConfirmed && order.User.Disable == false);
+                if (code == "")
+                    return Json(new
+                    {
+                        Message = "در حال حاضر امکان ارسال پیامک برای فعال‌سازی حساب کاربری شما وجود ندارد. لطفاً با مدیریت فروشگاه ارتباط برقرار کنید.",
+                        statusCode = 500
+                    }, JsonRequestBehavior.AllowGet);
+
+                if (code != "1")
+                    await SendPayCodeSms(order.UserId, order.User.UserName, order.User.FirstName, order.User.LastName, code);
+
+                var freshUser = uow.UserRepository.GetByID(order.UserId);
+
+                return Json(new
+                {
+                    phoneNumber = order.User.PhoneNumber,
+                    codeExpire = freshUser != null ? freshUser.ActiveTempCodeExpire : null,
+                    statusCode = 200
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "paysendcode", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { Message = "خطایی رخ داد.", statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // مرحله‌ی ۳: تاییدِ کد و ورود. برخلافِ نسخه‌ی قدیمی که کوکیِ OWIN می‌ساخت، این‌جا
+        // JWT برمی‌گرده تا فرانت مثل بقیه‌ی مسیرهای ورود روی atk/rtk بشونه.
+        [HttpPost]
+        [AllowAnonymous]
+        public JsonResult PayVerify(string userName, string code, string id)
+        {
+            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(userName))
+                return Json(new { Message = "اطلاعات ناقص است.", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+            if (string.IsNullOrEmpty(code))
+                return Json(new { Message = "کد فعال‌سازی را وارد نمایید.", statusCode = 400 }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                DateTime nowdateTime = DateTime.Now;
+                var order = uow.OrderRepository.GetQueryList().Include("User").AsNoTracking()
+                    .Where(x => x.CustomerOrderId == id && x.IsOld == false && x.IsExpire == false && (x.ExpireDate != null && x.ExpireDate > nowdateTime)
+                        && x.OrderStates.Any(sx => sx.state == OrderStatus.تایید_سفارش)
+                        && !x.OrderStates.Any(sx => sx.state == OrderStatus.تایید_پرداخت)
+                        && !x.OrderStates.Any(sx => sx.state == OrderStatus.لغو_شده)
+                        && !x.OrderStates.Any(sx => sx.state == OrderStatus.درخواست_لغو)).FirstOrDefault();
+
+                if (order == null)
+                    return Json(new { Message = "مهلت پرداخت سفارش به اتمام رسیده است.", statusCode = 410 }, JsonRequestBehavior.AllowGet);
+
+                var user = UserManager.FindByName(userName);
+                if (user == null)
+                    return Json(new { Message = "نام کاربری (شماره تلفن همراه) وارد شده صحیح نیست.", statusCode = 400 }, JsonRequestBehavior.AllowGet);
+
+                // کد باید متعلق به همون کاربرِ سفارش باشه، وگرنه می‌شد با کدِ حسابِ خود، سفارشِ
+                // یه نفر دیگه رو باز کرد.
+                if (user.Id != order.UserId)
+                    return Json(new { Message = "این شماره با سفارش مطابقت ندارد.", statusCode = 400 }, JsonRequestBehavior.AllowGet);
+
+                if (user.ActiveTempCode != code)
+                    return Json(new { Message = "کد وارد شده معتبر نیست!", statusCode = 400 }, JsonRequestBehavior.AllowGet);
+
+                if (user.ActiveTempCodeExpire <= DateTime.Now)
+                    return Json(new { Message = "کد وارد شده منقضی شده است. لطفاً دوباره درخواست کد دهید.", statusCode = 400 }, JsonRequestBehavior.AllowGet);
+
+                user.PhoneNumberConfirmed = true;
+                user.ActiveTempCode = null;
+                user.ActiveTempCodeExpire = null;
+                user.Disable = false;
+                user.LastActivityDate = DateTime.Now;
+                UserManager.Update(user);
+
+                IdentityManager im = new IdentityManager();
+                string role = im.IsInRole(user.Id, "Admin") ? "Admin" : im.IsInRole(user.Id, "Seller") ? "Seller" : "User";
+                var (jwtToken, refreshToken) = IssueAuthTokens(user, user.PhoneNumber, role);
+
+                return Json(new
+                {
+                    token = jwtToken,
+                    refreshToken = refreshToken,
+                    customerOrderId = order.CustomerOrderId,
+                    statusCode = 200
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "payverify", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { Message = "خطایی رخ داد.", statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // مرحله‌ی ۴: اطلاعاتِ صفحه‌ی پرداخت. معادلِ payController.buy + getminOrder.
+        [JWTAuthorize]
+        public JsonResult PayBuy(string id)
+        {
+            string Token = Request.Headers.GetValues("AuthToken").FirstOrDefault();
+            string userid = Authentication.ValidateToken(Token);
+            if (userid == null)
+                return Json(new { status = 10, Message = "Token Expired!" }, JsonRequestBehavior.AllowGet);
+
+            if (string.IsNullOrEmpty(id))
+                return Json(new { Message = "شناسه سفارش نامعتبر است.", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                DateTime nowdateTime = DateTime.Now;
+                var order = uow.OrderRepository.GetQueryList().AsNoTracking()
+                    .Include(x => x.OrderStates)
+                    .Include("User.CityEntity.Province")
+                    .Include(x => x.UserPayAttachment)
+                    .Where(x => x.CustomerOrderId == id && x.UserId == userid).SingleOrDefault();
+
+                if (order == null)
+                    return Json(new { Message = "سفارش یافت نشد.", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+                bool payable = order.IsOld == false && order.IsExpire == false && (order.ExpireDate != null && order.ExpireDate > nowdateTime)
+                    && order.OrderStates.Any(sx => sx.state == OrderStatus.تایید_سفارش)
+                    && !order.OrderStates.Any(sx => sx.state == OrderStatus.تایید_پرداخت)
+                    && !order.OrderStates.Any(sx => sx.state == OrderStatus.لغو_شده)
+                    && !order.OrderStates.Any(sx => sx.state == OrderStatus.درخواست_لغو);
+
+                if (!payable)
+                    return Json(new
+                    {
+                        Message = "مهلت پرداخت سفارش به اتمام رسیده. می‌توانید با شماره فروشگاه ارتباط برقرار کنید تا دوباره سفارش جدیدی برای شما ثبت شود.",
+                        statusCode = 410
+                    }, JsonRequestBehavior.AllowGet);
+
+                var vm = GetPayOrderVM(order);
+
+                // خودِ BuyindexVM مستقیم سریالایز نمی‌شه: ProductDetailItem دو فیلدش
+                // (ProductState و ProductIcon) موجودیتِ کاملِ EF ـن و ProductDetailItems هم
+                // بدونِ AsNoTracking و با Includeهای سنگین کوئری می‌زنه. توی سایتِ قدیمی این
+                // ViewModel به یه View می‌رفت و هیچ‌وقت JSON نمی‌شد؛ این‌جا JavaScriptSerializer
+                // روی navigation propertyها می‌چرخه و با circular reference می‌ترکه - نتیجه‌اش
+                // یه صفحه‌ی خطای ۵۰۰ ئه که اصلاً JSON نیست و فرانت نمی‌تونه بخونتش.
+                // پس فقط همون فیلدهایی که فرانت لازم داره پروجکت می‌شن.
+                var slim = new
+                {
+                    vm.CustomerOrderId,
+                    vm.BankOrderId,
+                    vm.UserPayAttachment,
+                    vm.UserPayAttachmentTitle,
+                    vm.ExpireDate,
+                    vm.Cost,
+                    vm.SendWayTitle,
+                    vm.Price,
+                    vm.BankId,
+                    vm.Fullname,
+                    vm.Phonenumber,
+                    vm.Address,
+                    OrderRows = vm.OrderRows == null ? null : vm.OrderRows.Select(r => new
+                    {
+                        r.Id,
+                        r.ProductId,
+                        r.Quantity,
+                        r.Price
+                    }).ToList(),
+                    Products = vm.Products == null ? null : vm.Products.Select(pd => new
+                    {
+                        pd.Id,
+                        pd.Title,
+                        pd.Code,
+                        pd.MainImageFileName
+                    }).ToList()
+                };
+
+                return Json(new { data = slim, statusCode = 200 }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "paybuy", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { Message = "خطایی رخ داد.", statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // آپلودِ رسیدِ کارت‌به‌کارت برای سفارشِ ثبت‌شده توسطِ ادمین.
+        //
+        // چرا اکشنِ جدا و نه همون apiv1/CardPay: اون یکی مخصوصِ مسیرِ سبدِ خریده و دو مشکل برای
+        // این مسیر داشت -
+        //   ۱) شرطِ PaymentType == 3 داره، در حالی که صفحه‌ی پرداختِ ادمین بر اساسِ وجودِ
+        //      UserPayAttachment تصمیم می‌گیره نه نوعِ پرداخت.
+        //   ۲) از UploadMultipleFile استفاده می‌کنه که تصویر رو واترمارک و ری‌سایز می‌کنه؛
+        //      اون مسیر با System.Drawing.Image.FromFile فایل رو قفل نگه می‌داره و بعد روی
+        //      همون مسیر می‌نویسه ("The process cannot access the file because it is being
+        //      used by another process") و در نهایت NullReference می‌داد.
+        // خودِ payController قدیمی هم آپلودرِ سبکِ خودش رو داشت (بدونِ هیچ پردازشِ تصویری) -
+        // برای یه رسیدِ بانکی واترمارک اصلاً معنی نداره. همون منطق این‌جا پیاده شده.
+        [HttpPost]
+        [JWTAuthorize]
+        public async Task<JsonResult> PayCardPay(long BankOrderId, HttpPostedFileBase[] UploadedImages)
+        {
+            string Token = Request.Headers.GetValues("AuthToken").FirstOrDefault();
+            string userid = Authentication.ValidateToken(Token);
+            if (userid == null)
+                return Json(new { status = 10, Message = "Token Expired!" }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                // عیناً شرطِ نسخه‌ی قدیمی: فقط مالکیت. شرط‌های اضافیِ مسیرِ سبد این‌جا اعمال نمی‌شن.
+                var order = uow.OrderRepository.Get(x => x, x => x.BankOrderId == BankOrderId && x.UserId == userid,
+                    null, "OrderStates,OrderRows,OrderWallets.Wallet.WalletAttributeWallets.WalletAttribute,OrderWallets.Wallet.BankAccount,OrderDeliveries.ProductSendWay,OrderDeliveries.UserAddress.CityEntity,User.CityEntity.Province").FirstOrDefault();
+
+                if (order == null)
+                    return Json(new { Message = "سفارش یافت نشد.", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+                if (DateTime.Now >= order.ExpireDate)
+                    return Json(new { Message = "مهلت پرداخت این سفارش به پایان رسیده است.", statusCode = 4051 }, JsonRequestBehavior.AllowGet);
+
+                if (UploadedImages == null || !UploadedImages.Any(x => x != null && x.ContentLength > 0))
+                    return Json(new { Message = "عکس رسید پرداختی را وارد نمایید.", statusCode = 4052 }, JsonRequestBehavior.AllowGet);
+
+                List<attachment> newAttachmentList;
+                string uploadError;
+                if (!SavePaymentReceipt(UploadedImages, userid, out newAttachmentList, out uploadError))
+                    return Json(new { Message = uploadError, statusCode = 500 }, JsonRequestBehavior.AllowGet);
+
+                order.AdminPayAttach = newAttachmentList.First().Id;
+                uow.OrderRepository.Update(order);
+                await uow.SaveAsync();
+
+                // پیامک‌ها عیناً مثلِ نسخه‌ی قدیمی، و مثلِ اون داخلِ try/catchِ جدا تا شکستشون
+                // ثبتِ رسید رو بی‌اثر نکنه.
+                try
+                {
+                    string frontendUrl = System.Configuration.ConfigurationManager.AppSettings["NextJsFrontendUrl"] ?? "";
+                    var setting = GetSetting();
+                    var sms = new SmsService();
+                    var user = order.User;
+                    var wallet = order.OrderWallets.First().Wallet;
+                    string cityName = (user != null && user.CityId.HasValue) ? user.CityEntity.Name
+                        : (order.OrderDeliveries.Any() && order.OrderDeliveries.First().UserAddress != null ? order.OrderDeliveries.First().UserAddress.CityEntity.Name : "");
+                    string price = string.Format("{0:n0}", wallet.Price);
+                    var msg = new IdentityMessage();
+
+                    if (order.AdminNotification == false)
+                    {
+                        bool isestalam = order.OrderWallets.Any(x => x.Wallet.WalletAttributeWallets.Any(sx => sx.WalletAttribute.DataType == 23));
+                        msg.Destination = setting != null ? setting.Mobile : null;
+                        msg.Body = Infrastructure.Sms.Pattern.GetSmsBody(SmsPatternType.ثبت_سفارش_جدید_مدیر, user.Id, order.CustomerOrderId, frontendUrl + "/profile/detail/" + order.CustomerOrderId, frontendUrl + "/profile/rate/" + order.CustomerOrderId, null, null, order.OrderDeliveries.Any() && order.OrderDeliveries.First().ProductSendWay != null ? order.OrderDeliveries.First().ProductSendWay.Title : "", OrderStatus.تایید_پرداخت.EnumDisplayNameFor(), price, cityName, null, frontendUrl + "/profile/edit", (isestalam ? "استعلامی" : "عادی"));
+
+                        // اگر شماره‌ی مدیر (Setting.Mobile) یا متنِ الگوی «ثبت سفارش جدید(مدیر)»
+                        // خالی باشد، SendSMSAsync اصلاً صدا زده نمی‌شد و هیچ ردی نمی‌ماند - یعنی
+                        // «پیامک مدیر نرفت» بدونِ هیچ خطایی. حالا هم لاگ می‌شود و هم
+                        // AdminNotification دست‌نخورده می‌ماند تا بعد از رفعِ علت، تلاشِ بعدی
+                        // (آپلودِ دوباره‌ی رسید یا هر مسیرِ دیگر) واقعاً بفرستد.
+                        if (string.IsNullOrEmpty(msg.Destination) || string.IsNullOrEmpty(msg.Body))
+                        {
+                            Infrastructure.EventLog.Logger.Add(5, "api", "paycardpay-sms-admin", false, 500,
+                                "پیامک مدیر ارسال نشد | سفارش=" + order.CustomerOrderId
+                                + " | mobile=" + (string.IsNullOrEmpty(msg.Destination) ? "(خالی)" : msg.Destination)
+                                + " | طول متن=" + (msg.Body == null ? 0 : msg.Body.Length),
+                                DateTime.Now, userid);
+                        }
+                        else
+                        {
+                            await sms.SendSMSAsync(msg, "NewOrderAdmin", isestalam ? "استعلامی" : "عادی", null, null, price, cityName, true);
+                            order.AdminNotification = true;
+                            uow.OrderRepository.Update(order);
+                            uow.Save();
+                        }
+                    }
+
+                    msg.Destination = user.UserName;
+                    msg.Body = Infrastructure.Sms.Pattern.GetSmsBody(SmsPatternType.ثبت_سفارش_جدید_کاربر, user.Id, order.CustomerOrderId, frontendUrl + "/profile/detail/" + order.CustomerOrderId, frontendUrl + "/profile/rate/" + order.CustomerOrderId, null, null, null, OrderStatus.تایید_پرداخت.EnumDisplayNameFor(), price, cityName, null, frontendUrl + "/profile/edit");
+                    if (!string.IsNullOrEmpty(msg.Body))
+                        await sms.SendSMSAsync(msg, "NewAddOrder", frontendUrl + "/profile/detail/" + order.CustomerOrderId, null, null, user.FirstName, order.CustomerOrderId, true);
+                }
+                catch (Exception smsEx)
+                {
+                    Infrastructure.EventLog.Logger.Add(5, "api", "paycardpay-sms", false, 500, smsEx.Message, DateTime.Now, userid);
+                }
+
+                return Json(new
+                {
+                    Message = "اطلاعات شما ثبت شد و سفارش شما در مرحله بررسی اطلاعات پرداخت می‌باشد. پس از تایید پرداخت، از طریق پیامک مطلع خواهید شد.",
+                    statusCode = 200
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "paycardpay", false, 500, ex.Message, DateTime.Now, userid);
+                return Json(new { Message = "خطایی رخ داد.", statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // آپلودِ سبکِ رسید - معادلِ payController.UploadMultipleFile. عمداً هیچ واترمارک/ری‌سایز/
+        // فشرده‌سازی‌ای نداره: هم برای یه رسیدِ بانکی بی‌معنیه، هم خطِ لوله‌ی تصویرِ CoreLib
+        // فایل رو قفل می‌کنه و همین‌جا می‌شکست.
+        private bool SavePaymentReceipt(HttpPostedFileBase[] uploadedFiles, string userid, out List<attachment> newAttachmentList, out string error)
+        {
+            newAttachmentList = new List<attachment>();
+            error = "";
+            try
+            {
+                foreach (var file in uploadedFiles)
+                {
+                    if (file == null || file.ContentLength <= 0) continue;
+
+                    if (file.ContentLength > 10485760)
+                    {
+                        error = "حجم فایل بیش از ۱۰ مگابایت است.";
+                        return false;
+                    }
+
+                    string extention = file.FileName.Substring(file.FileName.LastIndexOf(".")).ToLower();
+                    var oFiletype = uow.FiletypeRepository.Get(x => x, x => x.FileTypeName.ToLower().Equals(extention)).SingleOrDefault();
+                    if (oFiletype == null)
+                    {
+                        error = "پسوند فایل مجاز نیست.";
+                        return false;
+                    }
+
+                    var newAttchment = new attachment
+                    {
+                        UseCount = 0,
+                        InsertDate = DateTime.Now,
+                        IsActive = true,
+                        DisplaySort = 1,
+                        LanguageId = 1,
+                        FileName = file.FileName,
+                        FileTypeId = oFiletype.Id,
+                        Capacity = file.ContentLength / 1024,
+                        UserId = userid,
+                        Title = string.IsNullOrEmpty(file.FileName) ? "بی نام" : file.FileName,
+                        HasWatermark = false,
+                        HasMultiSize = false
+                    };
+                    uow.AttachmentRepository.Insert(newAttchment);
+                    uow.Save();
+
+                    string fileName = "LG_" + newAttchment.Id.ToString() + oFiletype.FileTypeName;
+                    newAttchment.FileName = fileName;
+                    uow.AttachmentRepository.Update(newAttchment);
+                    uow.Save();
+
+                    // همون مسیرِ ثابتی که بقیه‌ی آپلودهای این پروژه استفاده می‌کنن
+                    string targetFolder = @"C:\inetpub\wwwroot\api.tfshops.com\Content\UploadFiles\";
+                    if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
+                    file.SaveAs(Path.Combine(targetFolder, fileName));
+
+                    newAttachmentList.Add(newAttchment);
+                }
+
+                if (!newAttachmentList.Any())
+                {
+                    error = "فایلی برای ذخیره یافت نشد.";
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "paycardpay-upload", false, 500, ex.Message, DateTime.Now, userid);
+                error = "در آپلود تصویر خطایی رخ داد.";
+                return false;
+            }
+        }
+
+        // معادلِ payController.setCode - کدِ ۵ رقمی با اعتبارِ ۱۰ دقیقه. اگه کدِ قبلی هنوز
+        // منقضی نشده، "1" برمی‌گردونه تا پیامکِ تکراری فرستاده نشه.
+        private async Task<string> SetPayCode(string userid, bool login)
+        {
+            var user = uow.UserRepository.GetByID(userid);
+            try
+            {
+                if (user.ActiveTempCodeExpire < DateTime.Now || user.ActiveTempCodeExpire == null)
+                {
+                    var generator = new Random();
+                    string ra = generator.Next(0, 100000).ToString("D5");
+                    if (login == false)
+                    {
+                        user.PhoneNumberConfirmed = false;
+                        user.Disable = true;
+                    }
+                    user.ActiveTempCode = ra;
+                    user.ActiveTempCodeExpire = DateTime.Now.AddMinutes(10);
+                    uow.UserRepository.Update(user);
+                    await uow.SaveAsync();
+                    return ra;
+                }
+                return "1";
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "pay-setcode", false, 500, ex.Message, DateTime.Now, userid);
+                return "";
+            }
+        }
+
+        private async Task<bool> SendPayCodeSms(string userid, string username, string firstName, string lastName, string code)
+        {
+            var sms = new SmsService();
+            try
+            {
+                string frontendUrl = System.Configuration.ConfigurationManager.AppSettings["NextJsFrontendUrl"] ?? "";
+                var iPhonemessage = new IdentityMessage();
+                iPhonemessage.Destination = username;
+                iPhonemessage.Body = Infrastructure.Sms.Pattern.GetSmsBody(SmsPatternType.ثبت_نام, userid, null, null, null, null, code, null, null, null, null, null, frontendUrl + "/profile/edit");
+                if (!string.IsNullOrEmpty(iPhonemessage.Body))
+                    await sms.SendSMSAsync(iPhonemessage, "NewUserSms", code, null, null, firstName, lastName, true);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "pay-sendsms", false, 500, ex.Message, DateTime.Now, userid);
+                return false;
+            }
+        }
+
+        // معادلِ payController.getminOrder
+        private BuyindexVM GetPayOrderVM(Domain.Order order)
+        {
+            var vm = new BuyindexVM()
+            {
+                CustomerOrderId = order.CustomerOrderId,
+                BankOrderId = order.BankOrderId,
+                UserPayAttachment = order.UserPayAttach.HasValue ? order.UserPayAttachment.FileName : "",
+                UserPayAttachmentTitle = order.UserPayAttach.HasValue ? order.UserPayAttachment.Title : "",
+                ExpireDate = order.ExpireDate
+            };
+
+            List<int> ids = uow.OrderRowRepository.GetQueryList().AsNoTracking().Where(x => x.OrderId == order.Id).Select(x => x.ProductPriceId.Value).ToList();
+            vm.Products = uow.ProductPriceRepository.ProductDetailItems(ids);
+            vm.OrderRows = uow.OrderRowRepository.GetQueryList().AsNoTracking().Where(x => x.OrderId == order.Id && x.Disabled == false)
+                .Select(x => new orderRowMin() { Id = x.ProductPriceId.Value, ProductId = x.ProductId, Quantity = x.Quantity, Price = x.Price }).ToList();
+
+            long costprice = 0;
+            var orderCost = uow.OrderAttributeOrderRepository.GetQueryList().AsNoTracking().Where(x => x.OrderAttribute.DataType == 14 && x.OrderId == order.Id).FirstOrDefault();
+            if (orderCost != null && Convert.ToInt32(orderCost.Value) > 0)
+                costprice = Convert.ToInt32(orderCost.Value);
+
+            if (costprice > 0)
+                vm.Cost = string.Format("{0:n0} تومان", costprice);
+            else
+            {
+                var orderCostfree = uow.OrderAttributeOrderRepository.GetQueryList().AsNoTracking().Where(x => x.OrderAttribute.DataType == 29 && x.OrderId == order.Id).FirstOrDefault();
+                vm.Cost = (orderCostfree != null && orderCostfree.Value == "1") ? "ارسال رایگان" : "پس کرایه";
+            }
+
+            var orderDelivry = uow.OrderDeliveryRepository.GetQueryList().Include("UserAddress.CityEntity.Province").Include(x => x.AdminSelectedSendway).Include(x => x.ProductSendWay).AsNoTracking()
+                .Where(x => x.OrderId == order.Id)
+                .Select(x => new { x.Mobile, x.Address, x.UserAddressId, x.UserAddress, adminSendway = x.AdminSelectedSendway.Title, sendway = x.ProductSendWay.Title }).FirstOrDefault();
+
+            if (orderDelivry != null)
+                vm.SendWayTitle = orderDelivry.adminSendway != null ? orderDelivry.adminSendway : orderDelivry.sendway;
+
+            var wallet = uow.WalletRepository.GetQueryList().AsNoTracking().Include(x => x.BankAccount).Where(x => x.OrderWallets.Any(a => a.OrderId == order.Id)).FirstOrDefault();
+            if (wallet != null)
+            {
+                vm.Price = wallet.Price;
+                vm.BankId = wallet.BankAccount.BankId;
+            }
+
+            if (orderDelivry != null && string.IsNullOrEmpty(orderDelivry.Address) && orderDelivry.UserAddressId.HasValue)
+            {
+                vm.Fullname = orderDelivry.UserAddress.FullName;
+                vm.Phonenumber = !string.IsNullOrEmpty(orderDelivry.UserAddress.PhoneNumber) ? orderDelivry.UserAddress.PhoneNumber : orderDelivry.Mobile;
+                vm.Address = orderDelivry.UserAddress.CityEntity.Province.Name + " / " + orderDelivry.UserAddress.CityEntity.Name + " / " + orderDelivry.UserAddress.Address
+                    + (!string.IsNullOrEmpty(orderDelivry.UserAddress.AddressNumber) ? " پلاک " + orderDelivry.UserAddress.AddressNumber : "")
+                    + (!string.IsNullOrEmpty(orderDelivry.UserAddress.AddressUnit) ? " واحد " + orderDelivry.UserAddress.AddressUnit : "");
+            }
+            else
+            {
+                vm.Fullname = order.User.FirstName + " " + order.User.LastName;
+                vm.Phonenumber = order.User.PhoneNumber;
+                vm.Address = (order.User.CityEntity != null ? order.User.CityEntity.Province.Name + " / " + order.User.CityEntity.Name + " / " : "") + order.User.Address
+                    + (!string.IsNullOrEmpty(order.User.AddressNumber) ? " پلاک " + order.User.AddressNumber : "")
+                    + (!string.IsNullOrEmpty(order.User.AddressUnit) ? " واحد " + order.User.AddressUnit : "");
+            }
+
+            return vm;
+        }
+        #endregion
+
+        // «تحویل گرفتم و رضایت دارم» - مشتری خودش تاییدِ دریافت می‌زنه و مرسوله می‌ره به وضعیتِ
+        // «تحویل داده شده». بعد از این می‌تونه نظرسنجی (apiv1/Rate) رو هم انجام بده.
+        //
+        // اگه نزنه، سفارش روی «ارسال شده» می‌مونه تا ادمین دستی تحویل رو ثبت کنه. تخمینِ زمانِ
+        // تحویلی که به کاربر نشون داده می‌شه PredictDate + ۷ روزه (تصمیمِ کارفرما).
+        [HttpPost]
+        [JWTAuthorize]
+        public JsonResult ConfirmDelivery(int DeliveryId)
+        {
+            string Token = Request.Headers.GetValues("AuthToken").FirstOrDefault();
+            string userId = Authentication.ValidateToken(Token);
+            if (userId == null)
+                return Json(new { status = 10, Message = "Token Expired!" }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                var orderDelivery = uow.OrderDeliveryRepository.Get(x => x, x => x.Id == DeliveryId && x.Order.UserId == userId, null, "Order,OrderStates").SingleOrDefault();
+
+                if (orderDelivery == null)
+                    return Json(new { Message = "مرسوله یافت نشد.", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+                // فقط مرسوله‌ای که واقعاً ارسال شده. (حالت‌های لغو/مرجوعی هم طبیعتاً رد می‌شن
+                // چون اون‌جا آخرین وضعیت دیگه «ارسال شده» نیست.)
+                if (!orderDelivery.OrderStates.Any(x => x.state == OrderStatus.ارسال_شده))
+                    return Json(new { Message = "این مرسوله هنوز ارسال نشده است.", statusCode = 400 }, JsonRequestBehavior.AllowGet);
+
+                if (orderDelivery.OrderStates.Any(x => x.state == OrderStatus.تحویل_داده_شده))
+                    return Json(new { Message = "این مرسوله قبلاً تحویل ثبت شده است.", statusCode = 200 }, JsonRequestBehavior.AllowGet);
+
+                if (orderDelivery.OrderStates.Any(x => x.state == OrderStatus.لغو_شده || x.state == OrderStatus.مرجوعی))
+                    return Json(new { Message = "این مرسوله لغو یا مرجوع شده است.", statusCode = 400 }, JsonRequestBehavior.AllowGet);
+
+                orderDelivery.OrderStates.Add(new OrderState()
+                {
+                    LogDate = DateTime.Now,
+                    state = OrderStatus.تحویل_داده_شده,
+                    OrderDeliveryId = orderDelivery.Id,
+                    OrderId = orderDelivery.OrderId.Value
+                });
+                uow.OrderDeliveryRepository.Update(orderDelivery);
+                uow.Save();
+
+                Infrastructure.EventLog.Logger.Add(5, "api", "confirm-delivery", true, 200,
+                    "delivery=" + DeliveryId + " order=" + (orderDelivery.Order != null ? orderDelivery.Order.CustomerOrderId : ""),
+                    DateTime.Now, userId);
+
+                return Json(new
+                {
+                    Message = "تحویل سفارش ثبت شد.",
+                    customerOrderId = orderDelivery.Order != null ? orderDelivery.Order.CustomerOrderId : null,
+                    statusCode = 200
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "confirm-delivery", false, 500, ex.Message, DateTime.Now, userId);
+                return Json(new { Message = "خطایی رخ داد.", statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // «مشکلی پیش آمده است» - عمداً هیچ تغییرِ وضعیتی نمی‌ده و هیچ اتوماسیونی نداره.
+        // فقط یه فلگ روی سفارش می‌ذاره تا ادمین توی پنل ببینه، تلفنی پیگیری کنه و تا حل‌شدنِ
+        // موضوع سفارش رو «تحویل شد» نکنه.
+        [HttpPost]
+        [JWTAuthorize]
+        public JsonResult ReportIssue(int DeliveryId, string descr)
+        {
+            string Token = Request.Headers.GetValues("AuthToken").FirstOrDefault();
+            string userId = Authentication.ValidateToken(Token);
+            if (userId == null)
+                return Json(new { status = 10, Message = "Token Expired!" }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                var orderDelivery = uow.OrderDeliveryRepository.Get(x => x, x => x.Id == DeliveryId && x.Order.UserId == userId, null, "Order,OrderStates").SingleOrDefault();
+
+                if (orderDelivery == null || orderDelivery.Order == null)
+                    return Json(new { Message = "مرسوله یافت نشد.", statusCode = 404 }, JsonRequestBehavior.AllowGet);
+
+                var order = orderDelivery.Order;
+                order.CustomerIssue = true;
+                order.CustomerIssueDate = DateTime.Now;
+                if (!string.IsNullOrWhiteSpace(descr))
+                    order.CustomerIssueText = descr.Length > 900 ? descr.Substring(0, 900) : descr;
+                uow.OrderRepository.Update(order);
+                uow.Save();
+
+                Infrastructure.EventLog.Logger.Add(5, "api", "report-issue", true, 200,
+                    "delivery=" + DeliveryId + " order=" + order.CustomerOrderId, DateTime.Now, userId);
+
+                return Json(new
+                {
+                    Message = "مشکل شما ثبت شد. همکاران ما در اسرع وقت با شما تماس می‌گیرند.",
+                    statusCode = 200
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "report-issue", false, 500, ex.Message, DateTime.Now, userId);
+                return Json(new { Message = "خطایی رخ داد.", statusCode = 500 }, JsonRequestBehavior.AllowGet);
             }
         }
 

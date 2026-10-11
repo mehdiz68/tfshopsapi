@@ -97,7 +97,10 @@ namespace Repository.Service
                 ProductCommentDisAdvantage = x.Product.ProductDisAdvantages.GroupBy(s => s.Title).Take(5).Select(s => s.Key),
                 buyerattachments = x.Product.ProductComments.Any(s => s.IsActive) ? x.Product.ProductComments.Any(s => s.IsActive && s.ProductRankSelectValues.Any()) ? x.Product.ProductComments.Where(s => s.IsActive).SelectMany(s => s.attachments) : null : null,
                 quantity = x.Quantity,
-                Basketquantity = x.MaxBasketCount,
+                // طبقِ همون فرمولی که GotoStep3 موقعِ ثبتِ سفارش چک می‌کنه (کوچیک‌ترِ سقفِ ادمین و
+                // موجودیِ واقعی) - قبلاً فقط MaxBasketCount بود، یعنی می‌شد بیشتر از موجودیِ واقعی
+                // به سبد اضافه کرد.
+                Basketquantity = Math.Min(x.MaxBasketCount, x.Quantity),
                 productoffertype = _productService.ProductOfferType,
                 offerQuantity = _productService.offerQuantity,
                 offerMaxQuantity = _productService.offerMaxQuantity,
@@ -154,7 +157,10 @@ namespace Repository.Service
                 offExpireDate = _productService.offexpiredate,
                 ProductPrices = x.Product.ProductPrices.Where(s => s.IsActive).Select(a => new productpriceShortVM() { id = a.Id, ProductAttributeSelectColorId = a.ProductAttributeSelectColorId.HasValue ? a.ProductAttributeSelectColor.Value : "", ProductAttributeSelectGarantyId = x.ProductAttributeSelectGarantyId.HasValue ? x.ProductAttributeSelectGaranty.Value : "", ProductAttributeSelectModelId = a.ProductAttributeSelectModelId.HasValue ? a.ProductAttributeSelectModel.Value : "", ProductAttributeSelectSizeId = a.ProductAttributeSelectSizeId.HasValue ? a.ProductAttributeSelectSize.Value : "", ProductAttributeSelectWeightId = a.ProductAttributeSelectWeightId.HasValue ? a.ProductAttributeSelectweight.Value : "" }),
                 quantity = x.Quantity,
-                Basketquantity = x.MaxBasketCount,
+                // طبقِ همون فرمولی که GotoStep3 موقعِ ثبتِ سفارش چک می‌کنه (کوچیک‌ترِ سقفِ ادمین و
+                // موجودیِ واقعی) - قبلاً فقط MaxBasketCount بود، یعنی می‌شد بیشتر از موجودیِ واقعی
+                // به سبد اضافه کرد.
+                Basketquantity = Math.Min(x.MaxBasketCount, x.Quantity),
                 productoffertype = _productService.ProductOfferType,
                 offerQuantity = _productService.offerQuantity,
                 offerMaxQuantity = _productService.offerMaxQuantity,

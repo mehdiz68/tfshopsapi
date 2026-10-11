@@ -26,6 +26,7 @@ namespace Domain
                 HasOptional(Current => Current.Imagetorob).WithMany(Current => Current.BankAccount4s).HasForeignKey(Current => Current.AttachementIdtorob).WillCascadeOnDelete(false);
                 HasOptional(Current => Current.Imagecard).WithMany(Current => Current.BankAccount5s).HasForeignKey(Current => Current.AttachementIdcard).WillCascadeOnDelete(false);
 
+                HasOptional(Current => Current.Imagesnappay).WithMany(Current => Current.BankAccount6s).HasForeignKey(Current => Current.AttachementIdsnappay).WillCascadeOnDelete(false);
 
             }
         }
@@ -47,20 +48,26 @@ namespace Domain
         public string Descriptiondgpay { get; set; }
         [Display(Name = "توضیحات")]
         public string Descriptiontorob { get; set; }
+
+        [Display(Name = "توضیحات")]
+        public string Descriptionsnapp { get; set; }
         [Display(Name = "توضیحات")]
         public string Descriptioncard { get; set; }
 
         [Display(Name = "عنوان درگاه")]
-        public string Title{ get; set; }
+        public string Title { get; set; }
 
         [Display(Name = "عنوان دیجی پی")]
-        public string Titledigipay{ get; set; }
+        public string Titledigipay { get; set; }
 
         [Display(Name = "عنوان ترب")]
-        public string Titletorob{ get; set; }
+        public string Titletorob { get; set; }
+
+        [Display(Name = "عنوان اسنپ پی")]
+        public string Titlesnapppay { get; set; }
 
         [Display(Name = "عنوان کارت به کارت")]
-        public string Titlecard{ get; set; }
+        public string Titlecard { get; set; }
 
         [Required]
         [Display(Name = "شماره کارت")]
@@ -72,7 +79,7 @@ namespace Domain
         public string AccountNumber { get; set; }
 
         [Display(Name = "شماره شبا")]
-        public string AccountSHBN{ get; set; }
+        public string AccountSHBN { get; set; }
 
         [Required]
         [Display(Name = "پرداخت نقدی ( فیش بانکی )")]
@@ -116,7 +123,7 @@ namespace Domain
         [Display(Name = "بیشترین مبلغ فاکتور برای کارتخوان")]
         public long DeliveryPosPriceMax { get; set; }
 
-        public  BankAccountOnlineInfo BankAccountOnlineInfo { get; set; }
+        public BankAccountOnlineInfo BankAccountOnlineInfo { get; set; }
 
         [Display(Name = "درگاه پرداخت آنلاین غیر مستقیم ( زرین پال )")]
         public string MerchantId { get; set; }
@@ -175,6 +182,21 @@ namespace Domain
         [Display(Name = "زمان لغو خودکار به دقیقه")]
         public int dgpay_cancel_minutes { get; set; }
 
+        [Display(Name = "پرداخت ترب")]
+        public bool snappay { get; set; }
+        [Display(Name = "snappay_client_id")]
+        public string snappay_client_id { get; set; }
+        [Display(Name = "snappay_client_secret")]
+        public string snappay_client_secret { get; set; }
+        [Display(Name = "snappay_username")]
+        public string snappay_username { get; set; }
+        [Display(Name = "snappay_password")]
+        public string snappay_password { get; set; }
+        [Display(Name = "snappay_callback")]
+        public string snappay_callback { get; set; }
+        [Display(Name = "زمان لغو خودکار به دقیقه")]
+        public int snappay_cancel_minutes { get; set; }
+
 
         [Display(Name = "آیکن")]
         public Guid? AttachementId { get; set; }
@@ -187,6 +209,9 @@ namespace Domain
         [Display(Name = "آیکن")]
         public Guid? AttachementIdtorob { get; set; }
         public attachment Imagetorob { get; set; }
+        [Display(Name = "آیکن")]
+        public Guid? AttachementIdsnappay { get; set; }
+        public attachment Imagesnappay { get; set; }
 
         [Display(Name = "آیکن")]
         public Guid? AttachementIdcard { get; set; }
@@ -219,6 +244,11 @@ namespace Domain
         [Display(Name = "حداکثر خرید")]
         public int MaxBasketPricetorob { get; set; }
 
+        [Display(Name = "حداقل خرید")]
+        public int MinBasketPricesnappay { get; set; }
+
+        [Display(Name = "حداکثر خرید")]
+        public int MaxBasketPricesnappay { get; set; }
 
         [Display(Name = "حداقل خرید")]
         public int MinBasketPricecard { get; set; }
@@ -236,13 +266,16 @@ namespace Domain
         public int Commisiontorob { get; set; }
 
         [Display(Name = "کمیسیون اقساطی")]
+        public int Commisionsnappay { get; set; }
+
+        [Display(Name = "کمیسیون اقساطی")]
         public int Commisioncard { get; set; }
 
 
         [Display(Name = "زبان ( وب سایت )")]
         public Int16 LanguageId { get; set; }
 
-        public  ICollection<Wallet> Wallets { get; set; }
+        public ICollection<Wallet> Wallets { get; set; }
 
         public ICollection<ProductSendWayBankSelect> ProductSendWayBankSelects { get; set; }
 

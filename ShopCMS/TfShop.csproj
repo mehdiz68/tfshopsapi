@@ -423,13 +423,20 @@
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\Startup.Auth.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
+    <Compile Include="Infrastructure\Newsletter\NewsLetterToken.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\BaseController.cs" />
     <Compile Include="Controllers\ProfileController.cs" />
+    <Compile Include="Controllers\TorobController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Infrastructure\AccountApi\ApiProduct.cs" />
+    <Compile Include="Infrastructure\Search\PersianText.cs" />
+    <Compile Include="Infrastructure\Search\MeiliClient.cs" />
+    <Compile Include="Infrastructure\Search\SearchIndexer.cs" />
+    <Compile Include="Infrastructure\Search\SearchVocabulary.cs" />
+    <Compile Include="Infrastructure\Search\SearchService.cs" />
     <Compile Include="Infrastructure\AccountApi\ApiCustomer.cs" />
     <Compile Include="Infrastructure\AccountApi\ApiLogin.cs" />
     <Compile Include="Infrastructure\AuthJTW\AuthJTW.cs" />

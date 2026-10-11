@@ -139,6 +139,30 @@ namespace Domain
         public string DgpaypaymentGateway{ get; set; }
         public string DgpayJson{ get; set; }
 
+        // اسنپ‌پی - معادلِ فیلدهای Torob/Dgpay. ستون‌هاشون رو خودِ EF (AutomaticMigrations) موقعِ
+        // اولین اجرا اضافه می‌کنه، دقیقاً مثل بقیه‌ی فیلدهای این جدول.
+        public string SnappStatus { get; set; }
+        public string SnappPaymentToken { get; set; }
+        // کدِ پیگیریِ پرداخت که بعد از verify/settle برمی‌گرده
+        public string SnappTrackingCode { get; set; }
+        // مبلغِ ارسال‌شده به اسنپ‌پی (ریال) - برای مغایرت‌گیری
+        public long SnappAmount { get; set; }
+        // پاسخِ خامِ اسنپ‌پی (token/verify/settle). چون شِمای دقیقِ پاسخِ موفقِ verify/settle توی
+        // مستندات نبود و بدونِ یک پرداختِ واقعی هم قابلِ کشف نیست، عینِ الگوی DgpayJson کلِ پاسخ
+        // ذخیره می‌شه تا هیچ داده‌ای از دست نره و بعداً بشه هر فیلدی رو ازش بیرون کشید.
+        public string SnappJson { get; set; }
+
+        // ----- «ثبت مشکل» توسطِ مشتری در صفحه‌ی جزئیات سفارش -----
+        // وقتی کالا ارسال شده ولی مشتری به‌جای «تحویل گرفتم و رضایت دارم» دکمه‌ی «مشکلی پیش
+        // آمده» رو می‌زنه، این فلگ ست می‌شه. هیچ اتوماسیونی پشتش نیست و عمداً هم نیست: قراره
+        // ادمین ببینه، تلفنی پیگیری کنه و تا حل‌نشدنِ موضوع سفارش رو «تحویل شد» نکنه.
+        // ستون‌ها رو خودِ EF (AutomaticMigrations) موقعِ اولین اجرا می‌سازه.
+        public bool CustomerIssue { get; set; }
+        public DateTime? CustomerIssueDate { get; set; }
+        // متنِ اختیاریِ مشتری - فعلاً فرمِ فرانت متن نمی‌گیره، ولی ستونش هست تا بعداً اگر
+        // خواستیم توضیح بگیریم نیازی به مهاجرتِ دوباره نباشه.
+        public string CustomerIssueText { get; set; }
+
         public int? Commision { get; set; }
 
         public Guid? OrderId { get; set; }

@@ -22,6 +22,12 @@ namespace Domain.ViewModels
         public List<OrderAttributeSelectDetailV2> OrderAttributeSelects { get; set; }
         public List<OrderV2> ChildOrders { get; set; }
         public int? BankId { get; set; }
+        // نوعِ پرداخت (۷=ترب، ۸=دیجی‌پی، ۹=اسنپ‌پی) - فرانت باهاش تصمیم می‌گیره
+        // «شماره تراکنش» رو نشون بده یا نه (الزامِ اسنپ‌پی).
+        public int? PaymentType { get; set; }
+        // مشتری روی این سفارش «ثبت مشکل» زده - فرانت با این، به‌جای دکمه‌های رضایت/مشکل
+        // پیامِ «در حال پیگیری» نشون می‌ده.
+        public bool CustomerIssue { get; set; }
         public long Price { get; set; }
         // آیا سفارش هنوز در حالت «استعلام» (در انتظار تایید انبار/حسابداری) هست؛ برای بنر شمارش‌معکوس بالای صفحه
         public bool IsEstelam { get; set; }

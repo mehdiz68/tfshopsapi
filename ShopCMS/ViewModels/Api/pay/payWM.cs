@@ -90,4 +90,37 @@ namespace TfShop.ViewModels.Api.HeaderVM
         public string paymentToken { get; set; }
         public string paymentPageUrl { get; set; }
     }
+
+    #region SnappPay
+    // پاسخ‌های اسنپ‌پی دقیقاً هم‌شکلِ تربه (ترب روی همون پلتفرم اسنپ‌پی سواره) - با تستِ واقعی روی
+    // محیطِ staging تأیید شد: {"successful":true,"response":{"paymentToken":"...","paymentPageUrl":"..."}}
+    // ولی بدنه‌ی درخواستِ token با ترب فرق داره، برای همین DTOهای جدا تعریف شدن:
+    //   ۱) cartId و cartItems[].id باید «عدد» باشن (اگه رشته بفرستی خطای 1005 می‌ده)
+    //   ۲) mobile باید فرمتِ E.164 باشه: +989xxxxxxxxx (نه 09xxxxxxxxx)
+    //   ۳) فیلدهای discountAmount/externalSourceAmount لازمن
+    public class snapp_token
+    {
+        public string access_token { get; set; }
+    }
+
+    public class snappCartItem
+    {
+        public long id { get; set; }
+        public string name { get; set; }
+        public int count { get; set; }
+        public long amount { get; set; }
+        public string category { get; set; }
+    }
+
+    public class snappCartList
+    {
+        public long cartId { get; set; }
+        public long totalAmount { get; set; }
+        public long taxAmount { get; set; }
+        public long shippingAmount { get; set; }
+        public bool isTaxIncluded { get; set; }
+        public bool isShipmentIncluded { get; set; }
+        public List<snappCartItem> cartItems { get; set; }
+    }
+    #endregion
 }

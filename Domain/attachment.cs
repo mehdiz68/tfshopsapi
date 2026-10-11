@@ -163,6 +163,7 @@ namespace Domain
         public ICollection<BankAccount> BankAccount3s { get; set; }
         public ICollection<BankAccount> BankAccount4s { get; set; }
         public ICollection<BankAccount> BankAccount5s { get; set; }
+        public ICollection<BankAccount> BankAccount6s { get; set; }
 
         public ICollection<ProductCourseLesson> ProductCourseLessons { get; set; }
         public ICollection<Adveresting> Adverestings { get; set; }
