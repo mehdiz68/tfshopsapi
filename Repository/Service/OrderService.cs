@@ -1271,27 +1271,37 @@ namespace Repository.Service
             return orders;
         }
 
-        private PagedList.IPagedList<OrderV2> PageAndHydrateOrders(IQueryable<Order> baseQuery, int pageNumber, int pageSize, string sort = null)
+        private PagedList.IPagedList<OrderV2> PageAndHydrateOrders(IQueryable<Order> baseQuery, int pageNumber, int pageSize, string sort = null, List<Guid> pinFirstIds = null)
         {
             int totalCount = baseQuery.Count();
 
             // ترتیب: جدیدترین (پیش‌فرض) / قدیمی‌ترین بر مبنای BankOrderId (همون معیارِ قبلی)،
             // گران‌ترین/ارزان‌ترین بر مبنای قیمتِ کیفِ پولِ سفارش (همون فیلدی که در ادامه توی
-            // MapOrder به‌عنوانِ Price برمی‌گرده).
+            // MapOrder به‌عنوانِ Price برمی‌گرده). اگه pinFirstIds داده شده باشه (سفارش‌هایِ منتظرِ
+            // پرداخت در تبِ «پرداخت‌نشده»)، اون‌ها همیشه اول میان و ترتیبِ انتخابی داخلِ هر گروه
+            // اعمال می‌شه. لیستِ در-حافظه (نه IQueryable) عمداً: به CASE WHEN Id IN (...) ترجمه
+            // می‌شه؛ نسخه‌ی زیرکوئری‌دار روی SQL تایم‌اوت می‌خورد.
+            IOrderedQueryable<Order> pinned = (pinFirstIds != null && pinFirstIds.Count > 0)
+                ? baseQuery.OrderBy(x => pinFirstIds.Contains(x.Id) ? 0 : 1)
+                : null;
             IQueryable<Order> sortedQuery;
             switch (sort)
             {
                 case "oldest":
-                    sortedQuery = baseQuery.OrderBy(x => x.BankOrderId);
+                    sortedQuery = pinned != null ? pinned.ThenBy(x => x.BankOrderId) : baseQuery.OrderBy(x => x.BankOrderId);
                     break;
                 case "expensive":
-                    sortedQuery = baseQuery.OrderByDescending(x => x.OrderWallets.Select(w => w.Wallet.Price).FirstOrDefault());
+                    sortedQuery = pinned != null
+                        ? pinned.ThenByDescending(x => x.OrderWallets.Select(w => w.Wallet.Price).FirstOrDefault())
+                        : baseQuery.OrderByDescending(x => x.OrderWallets.Select(w => w.Wallet.Price).FirstOrDefault());
                     break;
                 case "cheap":
-                    sortedQuery = baseQuery.OrderBy(x => x.OrderWallets.Select(w => w.Wallet.Price).FirstOrDefault());
+                    sortedQuery = pinned != null
+                        ? pinned.ThenBy(x => x.OrderWallets.Select(w => w.Wallet.Price).FirstOrDefault())
+                        : baseQuery.OrderBy(x => x.OrderWallets.Select(w => w.Wallet.Price).FirstOrDefault());
                     break;
                 default:
-                    sortedQuery = baseQuery.OrderByDescending(x => x.BankOrderId);
+                    sortedQuery = pinned != null ? pinned.ThenByDescending(x => x.BankOrderId) : baseQuery.OrderByDescending(x => x.BankOrderId);
                     break;
             }
 
@@ -1346,6 +1356,18 @@ namespace Repository.Service
                 .Where(o => o != null)
                 .Select(x => MapOrder(x, colorlist))
                 .ToList();
+
+            if (pinFirstIds != null && pinFirstIds.Count > 0)
+            {
+                var awaitingOnPage = new HashSet<Guid>(pinFirstIds.Where(id => pageIds.Contains(id)));
+                DateTime now = DateTime.Now;
+                foreach (var o in mapped.Where(o => awaitingOnPage.Contains(o.Id)))
+                {
+                    o.AwaitingPayment = true;
+                    var entity = hydrated.First(h => h.Id == o.Id);
+                    o.PaymentMinutesLeft = Math.Max(1, (int)Math.Ceiling((entity.ExpireDate - now).TotalMinutes));
+                }
+            }
 
             return new PagedList.StaticPagedList<OrderV2>(mapped, pageNumber, pageSize, totalCount);
         }
@@ -1546,12 +1568,48 @@ namespace Repository.Service
                               where x.Order.UserId == userid
                               group x by x.OrderId into g
                               select new { g.Key, state = g.Max(x => x.state) };
-            IQueryable<Guid> cancelledOrReturned = orderStates.Where(x => x.state == OrderStatus.لغو_شده || x.state == OrderStatus.مرجوعی).Select(x => x.Key);
+            // سفارش‌هایِ منتظرِ پرداخت هم این‌جا میان (بالایِ لیست، با ظاهرِ جدید)؛ لغوشده‌ها و
+            // مرجوعی‌ها مثلِ قبل زیرشون. شرطِ UserId قبلاً نبود: سفارش‌هایِ Isdelete همه‌ی کاربرها
+            // توی تبِ هر کاربری میومد (فقط لغوشده/مرجوعی‌ها از طریقِ orderStates به کاربر محدود بودن).
+            //
+            // سه مجموعه‌ی شناسه اول جدا و هر کدوم با یه کوئریِ سادهِ محدود به همین کاربر گرفته می‌شن،
+            // بعد کوئریِ اصلی فقط «Id IN (...)» ئه. نسخه‌ای که هر سه رو به‌شکلِ زیرکوئری با OR (و
+            // یکی‌شون دوباره توی ORDER BY) داشت روی دیتابیسِ واقعی Execution Timeout می‌داد.
+            List<Guid> cancelledOrReturned = orderStates.Where(x => x.state == OrderStatus.لغو_شده || x.state == OrderStatus.مرجوعی).Select(x => x.Key).ToList();
+            List<Guid> deleted = GetQueryList().AsNoTracking().Where(x => x.UserId == userid && x.OrderId == null && x.Isdelete).Select(x => x.Id).ToList();
+            List<Guid> awaitingPayment = PendingPaymentOrders(userid).Select(x => x.Id).ToList();
+            List<Guid> ids = cancelledOrReturned.Concat(deleted).Concat(awaitingPayment).Distinct().ToList();
 
-            var baseQuery = GetQueryList().AsNoTracking().Where(x => x.OrderId == null && (x.Isdelete || cancelledOrReturned.Contains(x.Id)));
+            var baseQuery = GetQueryList().AsNoTracking().Where(x => x.UserId == userid && x.OrderId == null && ids.Contains(x.Id));
             baseQuery = ApplyOrderFilters(baseQuery, date, keyword, filterState);
 
-            return PageAndHydrateOrders(baseQuery, pageNumber, pageSize, sort);
+            return PageAndHydrateOrders(baseQuery, pageNumber, pageSize, sort, awaitingPayment);
+        }
+
+        /// <summary>
+        /// سفارش‌هایِ «منتظرِ پرداخت»: دقیقاً همان تعریفِ SuspendOrders که سبدِ خرید استفاده می‌کند
+        /// (ApiV1Controller.GetCart / GetSuspendOrders) - پرداختِ اینترنتی/قسطی (نه کارت‌به‌کارت،
+        /// کارتخوان یا نقدی)، منقضی/قدیمی نشده، زمانِ پرداختش نگذشته، استعلامی نیست و هیچ وضعیتِ
+        /// «تایید پرداخت» یا بعد از آن ندارد.
+        /// </summary>
+        private IQueryable<Order> PendingPaymentOrders(string userid)
+        {
+            DateTime now = DateTime.Now;
+            return GetQueryList().AsNoTracking().Where(x => x.UserId == userid && x.OrderId == null && !x.Isdelete
+                && x.OrderWallets.Any(s => s.Wallet.PaymentType != 4 && s.Wallet.PaymentType != 5 && s.Wallet.PaymentType != 3)
+                && x.IsOld == false && x.IsExpire == false && x.ExpireDate > now
+                && !x.OrderWallets.Any(s => s.Wallet.WalletAttributeWallets.Any(r => r.WalletAttribute.DataType == 23))
+                && !x.OrderStates.Any(s => s.state >= OrderStatus.تایید_پرداخت));
+        }
+
+        public int CountPendingPaymentOrdersV2(string userid)
+        {
+            return PendingPaymentOrders(userid).Count();
+        }
+
+        public bool IsPendingPaymentOrderV2(string userid, long bankOrderId)
+        {
+            return PendingPaymentOrders(userid).Any(x => x.BankOrderId == bankOrderId);
         }
     }
 }

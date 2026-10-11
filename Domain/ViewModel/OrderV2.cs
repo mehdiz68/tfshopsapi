@@ -27,6 +27,11 @@ namespace Domain.ViewModels
         public long Price { get; set; }
         public bool HasRate { get; set; }
         public bool Isdelete { get; set; }
+        // «منتظرِ پرداخت»: هنوز پرداخت نشده، منقضی/لغو نشده و قابلِ پرداخت است (همان تعریفِ
+        // SuspendOrdersِ سبدِ خرید). فقط در تبِ «پرداخت‌نشده» پر می‌شود.
+        public bool AwaitingPayment { get; set; }
+        // چند دقیقه‌ی دیگر قابلِ پرداخت است (برایِ «تا n دقیقه دیگه منتظرِ پرداختِ شما می‌مونه»)
+        public int? PaymentMinutesLeft { get; set; }
     }
     public class OrderStateV2
     {

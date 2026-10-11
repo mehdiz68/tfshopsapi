@@ -13643,18 +13643,116 @@ namespace TfShop.Controllers
                     keyword = keyword,
                     Orders = orders,
                     TotalCount = orders.TotalItemCount,
+                    // برایِ نشانِ عددیِ رویِ تبِ «پرداخت‌نشده» - مستقل از اینکه کدوم تب باز است
+                    PendingPaymentCount = uow.OrderRepository.CountPendingPaymentOrdersV2(userId),
                     statusCode = 200
                 }, JsonRequestBehavior.AllowGet);
 
             }
             catch (Exception ex)
             {
-                Infrastructure.EventLog.Logger.Add(5, "api", "Orders", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                string ordersErr = ex.ToString();
+                if (ordersErr.Length > 4000) ordersErr = ordersErr.Substring(0, 4000);
+                Infrastructure.EventLog.Logger.Add(5, "api", "Orders", false, 500, ordersErr, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
                 return Json(new
                 {
                     Message = "خطایی رخ داد.",
                     statusCode = 500
                 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        /// <summary>
+        /// «ویرایش سفارش» رویِ سفارشِ منتظرِ پرداخت (تبِ «پرداخت‌نشده»ِ پروفایل): سفارش با علتِ
+        /// «میخواهم سفارش خود را ویرایش کنم» (InvalidEdit) لغو می‌شود - دقیقاً همان کاری که
+        /// CancelUserOrderForm برایِ لغوِ سفارشِ پرداخت‌نشده می‌کند (وضعیتِ درخواست لغو + لغو شده،
+        /// منقضی، و برگشتِ موجودی با CheckQuantity) - و اقلامش با قیمت و موجودیِ *فعلی* برمی‌گردند
+        /// تا فرانت دوباره به سبدِ خرید اضافه‌شان کند. قیمتِ فعلی لازم است چون AddOrder سبدی را که
+        /// قیمتش با قیمتِ روزِ کالا نخواند رد می‌کند.
+        /// فقط برایِ سفارشی که واقعاً هنوز منتظرِ پرداخت است (همان تعریفِ SuspendOrders).
+        /// </summary>
+        [HttpPost]
+        [JWTAuthorize]
+        public JsonResult EditPendingOrder(long bankOrderId)
+        {
+            string Token = Request.Headers.GetValues("AuthToken").FirstOrDefault();
+            string userId = Authentication.ValidateToken(Token);
+            if (userId == null)
+                return Json(new { status = 10, Message = "Token Expired!" }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                if (!uow.OrderRepository.IsPendingPaymentOrderV2(userId, bankOrderId))
+                    return Json(new { statusCode = 404, Message = "این سفارش دیگر قابل ویرایش نیست." }, JsonRequestBehavior.AllowGet);
+
+                var order = uow.OrderRepository.Get(x => x, x => x.BankOrderId == bankOrderId && x.UserId == userId, null, "OrderRows,OrderDeliveries.OrderStates").SingleOrDefault();
+                if (order == null)
+                    return Json(new { statusCode = 404, Message = "این سفارش دیگر قابل ویرایش نیست." }, JsonRequestBehavior.AllowGet);
+
+                DateTime now = DateTime.Now;
+                foreach (var delivery in order.OrderDeliveries)
+                {
+                    delivery.OrderStates.Add(new OrderState()
+                    {
+                        cancelOrderReson = CancelOrderReson.InvalidEdit,
+                        LogDate = now,
+                        state = OrderStatus.درخواست_لغو,
+                        OrderDeliveryId = delivery.Id,
+                        OrderId = order.Id
+                    });
+                    delivery.OrderStates.Add(new OrderState()
+                    {
+                        cancelOrderReson = CancelOrderReson.InvalidEdit,
+                        LogDate = now,
+                        state = OrderStatus.لغو_شده,
+                        OrderDeliveryId = delivery.Id,
+                        OrderId = order.Id
+                    });
+                }
+                order.IsActive = false;
+                order.New = false;
+                order.IsExpire = true;
+                uow.OrderRepository.Update(order);
+                uow.Save();
+
+                // موجودیِ کالاها برمی‌گرده (همون CancelUserOrderForm)
+                new TfShop.Infrastructure.Cart.order().CheckQuantity(order);
+
+                // اقلامِ سبد با قیمت/سقفِ فعلی. کالایی که دیگر موجود/قابلِ‌فروش نیست اضافه نمی‌شود.
+                var items = new List<object>();
+                int skipped = 0;
+                foreach (var g in order.OrderRows.Where(r => !r.Disabled && r.ProductPriceId.HasValue)
+                    .GroupBy(r => new { r.ProductId, ProductPriceId = r.ProductPriceId.Value }))
+                {
+                    var pp = uow.ProductPriceRepository.Get(x => new { x.Price, x.Quantity, x.MaxBasketCount, x.ProductStateId }, x => x.Id == g.Key.ProductPriceId).FirstOrDefault();
+                    if (pp == null || pp.ProductStateId > 2 || pp.Quantity <= 0)
+                    {
+                        skipped++;
+                        continue;
+                    }
+                    int max = pp.MaxBasketCount > 0 ? Math.Min(pp.MaxBasketCount, pp.Quantity) : pp.Quantity;
+                    items.Add(new
+                    {
+                        ProductId = g.Key.ProductId,
+                        ProductPriceId = g.Key.ProductPriceId,
+                        Price = pp.Price,
+                        MaxQuantity = max,
+                        Quantity = Math.Min(g.Sum(r => r.Quantity), max)
+                    });
+                }
+
+                Infrastructure.EventLog.Logger.Add(5, "api", "edit-pending-order", true, 200,
+                    "order=" + bankOrderId + " items=" + items.Count + " skipped=" + skipped,
+                    DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+
+                return Json(new { statusCode = 200, items = items, skipped = skipped }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                string err = ex.ToString();
+                if (err.Length > 4000) err = err.Substring(0, 4000);
+                Infrastructure.EventLog.Logger.Add(5, "api", "edit-pending-order", false, 500, err, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { statusCode = 500, Message = "خطایی رخ داد." }, JsonRequestBehavior.AllowGet);
             }
         }
 
