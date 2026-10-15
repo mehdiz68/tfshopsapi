@@ -382,13 +382,22 @@ namespace Repository.Service
                         }
                         if (validUserCodeGift == false)
                         {
-                            var GeneralCodeGift = context.GeneralCodeGift.Include("Offer.offerProductCategories").Include("GeneralCodeGiftLogs").Include("GeneralCodeGiftLogs.Order").Include("GeneralCodeGiftLists").Where(x => (x.Code == codeGift || x.GeneralCodeGiftLists.Any(b => b.Code == codeGift))).Select(x => new { x.Id, x.Offer, x.IsActive, StartDate = x.Offer.StartDate, x.Offer.ExpireDate, x.generalCode, x.MaxValue, x.OfferId, x.Value, x.CodeType, x.Offer.CodeTypeValueCode, x.GeneralCodeGiftLogs, x.CountUse, x.Offer.offerProductCategories, x.GeneralCodeGiftLists }).FirstOrDefault();
+                            // مثلِ کدِ کاربر: چند ردیف می‌تواند همین کد را داشته باشد (مثلاً یکی با پیشنهادِ
+                            // پاک‌شده یا بدونِ پیشنهاد). اعتبارسنجیِ سبد فقط پیشنهادِ پاک‌نشده را قبول
+                            // می‌کرد ولی این‌جا اولین ردیفِ دلخواه برداشته می‌شد و اگر Offer نداشت،
+                            // GeneralCodeGift.Offer.IsDeleted خطا می‌داد. حالا همان انتخابِ سبد: پاک‌نشده، جدیدترین.
+                            var GeneralCodeGift = context.GeneralCodeGift.Include("Offer.offerProductCategories").Include("GeneralCodeGiftLogs").Include("GeneralCodeGiftLogs.Order").Include("GeneralCodeGiftLists").Where(x => (x.Code == codeGift || x.GeneralCodeGiftLists.Any(b => b.Code == codeGift)) && x.Offer.IsDeleted == false).OrderByDescending(x => x.Id).Select(x => new { x.Id, x.Offer, x.IsActive, StartDate = x.Offer.StartDate, x.Offer.ExpireDate, x.generalCode, x.MaxValue, x.OfferId, x.Value, x.CodeType, x.Offer.CodeTypeValueCode, x.CountUseSelect, x.CountUse, x.Offer.offerProductCategories, x.GeneralCodeGiftLists,
+                                // لاگ‌هایِ استفاده به‌شکلِ تخت (وضعیت + کاربرِ سفارش) خودِ کوئری گرفته می‌شن:
+                                // موجودیت‌هایی که از دلِ یه projection میان lazy-load نمی‌شن، پس قبلاً
+                                // b.Order و b.GeneralCodeGift داخلِ شرطِ تعدادِ استفاده null بودن و
+                                // ثبتِ سفارش با کدِ عمومی NullReferenceException می‌داد.
+                                UsageLogs = x.GeneralCodeGiftLogs.Select(l => new { l.state, OrderUserId = l.Order != null ? l.Order.UserId : null }) }).FirstOrDefault();
                             if (GeneralCodeGift != null)
                             {
                                 giftCodeId = GeneralCodeGift.Id;
                                 if (GeneralCodeGift.GeneralCodeGiftLists.Any(s => s.Code == codeGift))
                                     giftListCodeId = GeneralCodeGift.GeneralCodeGiftLists.Where(s => s.Code == codeGift).First().Id;
-                                if (GeneralCodeGift.Offer.IsDeleted == false && GeneralCodeGift.IsActive && GeneralCodeGift.Offer.IsActive && GeneralCodeGift.Offer.state && (GeneralCodeGift.StartDate == null || GeneralCodeGift.StartDate <= dateTime) && (GeneralCodeGift.ExpireDate == null || GeneralCodeGift.ExpireDate >= dateTime) && (GeneralCodeGift.GeneralCodeGiftLogs.Where(b => b.state == true && ((b.Order.UserId == userid && b.GeneralCodeGift.CountUseSelect == true) || b.GeneralCodeGift.CountUseSelect == false)).Count() < GeneralCodeGift.CountUse || GeneralCodeGift.CountUse == 0))//کد تخفیف نامعتبر
+                                if (GeneralCodeGift.Offer.IsDeleted == false && GeneralCodeGift.IsActive && GeneralCodeGift.Offer.IsActive && GeneralCodeGift.Offer.state && (GeneralCodeGift.StartDate == null || GeneralCodeGift.StartDate <= dateTime) && (GeneralCodeGift.ExpireDate == null || GeneralCodeGift.ExpireDate >= dateTime) && (GeneralCodeGift.UsageLogs.Where(b => b.state == true && ((b.OrderUserId == userid && GeneralCodeGift.CountUseSelect == true) || GeneralCodeGift.CountUseSelect == false)).Count() < GeneralCodeGift.CountUse || GeneralCodeGift.CountUse == 0))//کد تخفیف نامعتبر
                                 {
                                     if (GeneralCodeGift.generalCode == GeneralCodeType.تخفیف_ارسال_رایگان)
                                     {
@@ -1316,46 +1325,8 @@ namespace Repository.Service
                 return new PagedList.StaticPagedList<OrderV2>(new List<OrderV2>(), pageNumber, pageSize, totalCount);
             }
 
-            var hydrated = GetQueryList().AsNoTracking()
-                .Include("OrderDeliveries.OrderRows.ProductPrice.ProductImages.Image")
-                .Include("OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectModel")
-                .Include("OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectSize")
-                .Include("OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectColor")
-                .Include("OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectSize.ProductAttributeGroupSelect.ProductAttribute")
-                .Include("OrderWallets.Wallet.WalletAttributeWallets.WalletAttribute")
-                .Include("OrderStates")
-                .Include("OrderDeliveries")
-                .Include("OrderDeliveries.ProductSendWay")
-                .Include("OrderDeliveries.AdminSelectedSendway")
-                .Include("OrderDeliveries.OrderRows.Product.ProductPrices.ProductImages.Image")
-                .Include("OrderWallets.Wallet.BankAccount")
-                .Include("OrderRates")
-                .Include("ChildOrders.OrderDeliveries.OrderRows.ProductPrice.ProductImages.Image")
-                .Include("ChildOrders.OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectModel")
-                .Include("ChildOrders.OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectSize")
-                .Include("ChildOrders.OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectColor")
-                .Include("ChildOrders.OrderDeliveries.OrderRows.ProductPrice.ProductAttributeSelectSize.ProductAttributeGroupSelect.ProductAttribute")
-                .Include("ChildOrders.OrderDeliveries")
-                .Include("ChildOrders.OrderDeliveries.ProductSendWay")
-                .Include("ChildOrders.OrderDeliveries.AdminSelectedSendway")
-                .Include("ChildOrders.OrderDeliveries.OrderRows.Product.ProductPrices.ProductImages.Image")
-                .Include("ChildOrders.OrderRows.ProductPrice.ProductImages.Image")
-                .Include("ChildOrders.OrderRows.ProductPrice.ProductAttributeSelectModel")
-                .Include("ChildOrders.OrderRows.ProductPrice.ProductAttributeSelectSize")
-                .Include("ChildOrders.OrderRows.ProductPrice.ProductAttributeSelectColor")
-                .Include("ChildOrders.OrderRows.ProductPrice.ProductAttributeSelectSize.ProductAttributeGroupSelect.ProductAttribute")
-                .Include("ChildOrders.OrderRows.Product.ProductPrices.ProductImages.Image")
-                .Include("OrderDeliveries.WalletAttributeWallets.WalletAttribute")
-                .Where(x => pageIds.Contains(x.Id))
-                .ToList();
-
-            var colorlist = context.ProductAttributeItemColors.ToList();
-
-            var mapped = pageIds
-                .Select(id => hydrated.FirstOrDefault(o => o.Id == id))
-                .Where(o => o != null)
-                .Select(x => MapOrder(x, colorlist))
-                .ToList();
+            Dictionary<Guid, DateTime> expireDates;
+            var mapped = HydrateOrdersV2(pageIds, out expireDates);
 
             if (pinFirstIds != null && pinFirstIds.Count > 0)
             {
@@ -1364,12 +1335,198 @@ namespace Repository.Service
                 foreach (var o in mapped.Where(o => awaitingOnPage.Contains(o.Id)))
                 {
                     o.AwaitingPayment = true;
-                    var entity = hydrated.First(h => h.Id == o.Id);
-                    o.PaymentMinutesLeft = Math.Max(1, (int)Math.Ceiling((entity.ExpireDate - now).TotalMinutes));
+                    DateTime expire;
+                    if (expireDates.TryGetValue(o.Id, out expire))
+                        o.PaymentMinutesLeft = Math.Max(1, (int)Math.Ceiling((expire - now).TotalMinutes));
                 }
             }
 
             return new PagedList.StaticPagedList<OrderV2>(mapped, pageNumber, pageSize, totalCount);
+        }
+
+        /// <summary>
+        /// ساختنِ OrderV2 هایِ یک صفحه با چند کوئریِ کوچک و projection، به‌جایِ یک کوئری با ~۳۰
+        /// Include. نسخه‌ی قبلی برایِ پیدا کردنِ *یک* تصویرِ بندانگشتی، همه‌ی تنوع‌هایِ هر کالا با همه‌ی
+        /// تصاویرشان (OrderRows.Product.ProductPrices.ProductImages.Image) را - یک بار برایِ سفارش و
+        /// یک بار برایِ سفارش‌هایِ فرزند - در یک SQLِ عظیم بار می‌کرد و رکوردها در هم ضرب می‌شدند؛
+        /// همین لودِ اولیه و هر بار عوض کردنِ تبِ «سفارش‌های من» را خیلی کند می‌کرد. این‌جا فقط
+        /// ستون‌هایی که واقعاً نمایش داده می‌شوند گرفته می‌شوند و تصویر هم داخلِ خودِ SQL انتخاب می‌شود.
+        /// خروجی عیناً همان MapOrder/MapChildOrder قبلی است.
+        /// </summary>
+        private List<OrderV2> HydrateOrdersV2(List<Guid> pageIds, out Dictionary<Guid, DateTime> expireDates)
+        {
+            // ۱) خودِ سفارش‌ها + فرزندانِ مستقیمشان (همان یک سطحِ قبلی)
+            var heads = GetQueryList().AsNoTracking()
+                .Where(x => pageIds.Contains(x.Id) || (x.OrderId != null && pageIds.Contains(x.OrderId.Value)))
+                .Select(x => new
+                {
+                    x.Id,
+                    ParentId = x.OrderId,
+                    x.BankOrderId,
+                    x.CustomerOrderId,
+                    x.InsertDate,
+                    x.ExpireDate,
+                    x.Isdelete,
+                    BankId = x.OrderWallets.Select(w => w.Wallet.BankAccountId).FirstOrDefault(),
+                    Price = x.OrderWallets.Select(w => (long?)w.Wallet.Price).FirstOrDefault(),
+                    PaymentType = x.OrderWallets.Select(w => w.Wallet.PaymentType).FirstOrDefault(),
+                    HasRate = x.OrderRates.Any()
+                })
+                .ToList();
+            expireDates = heads.ToDictionary(h => h.Id, h => h.ExpireDate);
+            var allIds = heads.Select(h => h.Id).ToList();
+
+            // ۲) وضعیت‌ها
+            var states = context.OrderStates.AsNoTracking()
+                .Where(st => allIds.Contains(st.OrderId))
+                .Select(st => new { st.Id, st.OrderId, st.state, st.LogDate })
+                .ToList();
+
+            // ۳) مرسوله‌ها
+            var deliveries = context.OrderDeliveries.AsNoTracking()
+                .Where(d => d.OrderId != null && allIds.Contains(d.OrderId.Value))
+                .OrderBy(d => d.Id)
+                .Select(d => new
+                {
+                    d.Id,
+                    OrderId = d.OrderId.Value,
+                    AdminSendwayTitle = d.AdminSelectedSendway != null ? d.AdminSelectedSendway.Title : null,
+                    SendwayTitle = d.ProductSendWay != null ? d.ProductSendWay.Title : null,
+                    d.PredictDate,
+                    AttrTypes = d.WalletAttributeWallets.Select(w => w.WalletAttribute.DataType)
+                })
+                .ToList();
+            var deliveryIds = deliveries.Select(d => d.Id).ToList();
+
+            // ۴) اقلام - تصویر همان قاعده‌ی GetOrderRowImageFileName: تصویرِ اصلیِ همین تنوع، وگرنه
+            //    اولین تصویرِ همین تنوع، وگرنه اولین تصویرِ هر تنوعِ دیگرِ همین کالا
+            var rows = context.OrderRows.AsNoTracking()
+                .Where(r => deliveryIds.Contains(r.OrderDeliveryId))
+                .OrderBy(r => r.Id)
+                .Select(r => new
+                {
+                    r.Id,
+                    r.OrderDeliveryId,
+                    r.ProductId,
+                    r.Product.PageAddress,
+                    r.Product.Title,
+                    r.Quantity,
+                    r.Disabled,
+                    ModelId = r.ProductPrice.ProductAttributeSelectModelId,
+                    Model = r.ProductPrice.ProductAttributeSelectModel.Value,
+                    SizeId = r.ProductPrice.ProductAttributeSelectSizeId,
+                    Size = r.ProductPrice.ProductAttributeSelectSize.Value,
+                    Unit = r.ProductPrice.ProductAttributeSelectSize.ProductAttributeGroupSelect.ProductAttribute.Unit,
+                    ColorId = r.ProductPrice.ProductAttributeSelectColorId,
+                    ColorValue = r.ProductPrice.ProductAttributeSelectColor.Value,
+                    MainImage = r.ProductPrice.ProductImages.Where(i => i.IsMain).Select(i => i.Image.FileName).FirstOrDefault(),
+                    AnyImage = r.ProductPrice.ProductImages.Select(i => i.Image.FileName).FirstOrDefault(),
+                    ProductImage = r.Product.ProductPrices.SelectMany(pp => pp.ProductImages).Select(i => i.Image.FileName).FirstOrDefault()
+                })
+                .ToList();
+
+            // ۵) فقط رنگ‌هایی که در همین صفحه لازم‌اند (نه کلِ جدول)
+            var colorIds = new List<int>();
+            foreach (var r in rows)
+            {
+                int cid;
+                if (r.ColorId != null && int.TryParse(r.ColorValue, out cid)) colorIds.Add(cid);
+            }
+            colorIds = colorIds.Distinct().ToList();
+            var colors = colorIds.Count == 0
+                ? new Dictionary<int, string>()
+                : context.ProductAttributeItemColors.AsNoTracking()
+                    .Where(c => colorIds.Contains(c.Id))
+                    .Select(c => new { c.Id, c.Color })
+                    .ToList()
+                    .ToDictionary(c => c.Id, c => c.Color);
+
+            var rowsByDelivery = rows.ToLookup(r => r.OrderDeliveryId);
+            var deliveriesByOrder = deliveries.ToLookup(d => d.OrderId);
+            var statesByOrder = states.ToLookup(st => st.OrderId);
+            var childrenByParent = heads.Where(h => h.ParentId != null).ToLookup(h => h.ParentId.Value);
+
+            Func<Guid, List<OrderDeliveryV2>> buildDeliveries = orderId => deliveriesByOrder[orderId].Select(d => new OrderDeliveryV2
+            {
+                Id = d.Id,
+                WalletAttributeWalles = d.AttrTypes.Select(t => new WalletAttributeWalletV2 { DataType = t }).ToList(),
+                SendWayTitle = d.AdminSendwayTitle ?? d.SendwayTitle,
+                PredictDate = d.PredictDate.HasValue
+                    ? CoreLib.Infrastructure.DateTime.DateTimeConverter.ChangeMiladiToLongShamsiWithoutYear(d.PredictDate.Value)
+                    : null,
+                OrderRows = rowsByDelivery[d.Id].Select(r =>
+                {
+                    string color = "";
+                    int cid;
+                    if (r.ColorId != null && int.TryParse(r.ColorValue, out cid) && colors.ContainsKey(cid)) color = colors[cid];
+                    return new OrderRowsV2
+                    {
+                        Id = r.Id,
+                        ProductId = r.ProductId,
+                        PageAddress = r.PageAddress,
+                        Title = r.Title,
+                        Quantity = r.Quantity,
+                        Disabled = r.Disabled,
+                        ProductAttributeSelectModelId = r.ModelId,
+                        ProductAttributeSelectModel = r.ModelId != null ? r.Model : null,
+                        ProductAttributeSelectSizeId = r.SizeId,
+                        ProductAttributeSelectSize = r.SizeId != null ? r.Size : null,
+                        Unit = r.SizeId != null ? r.Unit : null,
+                        ProductAttributeSelectColorId = r.ColorId,
+                        ProductAttributeSelectColor = color,
+                        ImageFileName = r.MainImage ?? r.AnyImage ?? r.ProductImage
+                    };
+                }).ToList()
+            }).ToList();
+
+            Func<Guid, List<OrderStateV2>> buildStates = orderId => statesByOrder[orderId]
+                .OrderBy(st => st.LogDate)
+                .Select(st => new OrderStateV2
+                {
+                    Id = st.Id,
+                    state = st.state,
+                    LogDate = CoreLib.Infrastructure.DateTime.DateTimeConverter.ChangeMiladiToLongShamsi(st.LogDate) + " - " + st.LogDate.ToString("HH:mm"),
+                    LogDateRaw = st.LogDate
+                }).ToList();
+
+            var headById = heads.ToDictionary(h => h.Id);
+            var result = new List<OrderV2>();
+            foreach (var id in pageIds)
+            {
+                if (!headById.ContainsKey(id)) continue;
+                var h = headById[id];
+                var children = childrenByParent[id].ToList();
+                result.Add(new OrderV2
+                {
+                    Id = h.Id,
+                    BankOrderId = h.BankOrderId,
+                    CustomerOrderId = h.CustomerOrderId,
+                    InsertDate = CoreLib.Infrastructure.DateTime.DateTimeConverter.ChangeMiladiToLongShamsi(h.InsertDate),
+                    BankId = h.BankId,
+                    Price = h.Price ?? 0,
+                    PaymentType = h.PaymentType,
+                    HasRate = h.HasRate,
+                    Isdelete = h.Isdelete,
+                    Orderstates = buildStates(h.Id),
+                    OrderDeliveries = buildDeliveries(h.Id),
+                    ChildOrders = children.Any()
+                        ? children.Select(c => new OrderV2
+                        {
+                            Id = c.Id,
+                            BankOrderId = c.BankOrderId,
+                            CustomerOrderId = c.CustomerOrderId,
+                            InsertDate = CoreLib.Infrastructure.DateTime.DateTimeConverter.ChangeMiladiToLongShamsi(c.InsertDate),
+                            BankId = c.BankId,
+                            Price = c.Price ?? 0,
+                            HasRate = c.HasRate,
+                            Isdelete = c.Isdelete,
+                            Orderstates = buildStates(c.Id),
+                            OrderDeliveries = buildDeliveries(c.Id)
+                        }).ToList()
+                        : null
+                });
+            }
+            return result;
         }
 
         private OrderV2 MapOrder(Order x, List<ProductAttributeItemColor> colorlist)
@@ -1382,6 +1539,7 @@ namespace Repository.Service
                 InsertDate = CoreLib.Infrastructure.DateTime.DateTimeConverter.ChangeMiladiToLongShamsi(x.InsertDate),
                 BankId = x.OrderWallets.Select(w => w.Wallet.BankAccountId).FirstOrDefault(),
                 Price = x.OrderWallets.Select(w => w.Wallet.Price).FirstOrDefault(),
+                PaymentType = x.OrderWallets.Select(w => w.Wallet.PaymentType).FirstOrDefault(),
                 HasRate = x.OrderRates.Any(),
                 Isdelete = x.Isdelete,
                 Orderstates = x.OrderStates.OrderBy(s => s.LogDate).Select(MapOrderState).ToList(),
@@ -1541,8 +1699,12 @@ namespace Repository.Service
                               group x by x.OrderId into g
                               select new { g.Key, state = g.Max(x => x.state) };
             IQueryable<Guid> currentorder = orderStates.Where(x => x.state < OrderStatus.تحویل_داده_شده).Select(x => x.Key);
+            // سفارشِ آنلاینی که هنوز پرداخت نشده «جاری» نیست - در تبِ «پرداخت‌نشده» است
+            // (لیستِ در-حافظه به‌جایِ زیرکوئری؛ رجوع کنید به توضیحِ GetUnpaidOrdersV2).
+            List<Guid> unpaidOnline = UnpaidOnlineOrders(userid).Select(x => x.Id).ToList();
 
-            var baseQuery = GetQueryList().AsNoTracking().Where(x => currentorder.Contains(x.Id) && x.OrderId == null && !x.Isdelete);
+            var baseQuery = GetQueryList().AsNoTracking().Where(x => currentorder.Contains(x.Id) && x.OrderId == null && !x.Isdelete
+                && !unpaidOnline.Contains(x.Id));
             baseQuery = ApplyOrderFilters(baseQuery, date, keyword, filterState);
 
             return PageAndHydrateOrders(baseQuery, pageNumber, pageSize, sort);
@@ -1578,7 +1740,11 @@ namespace Repository.Service
             List<Guid> cancelledOrReturned = orderStates.Where(x => x.state == OrderStatus.لغو_شده || x.state == OrderStatus.مرجوعی).Select(x => x.Key).ToList();
             List<Guid> deleted = GetQueryList().AsNoTracking().Where(x => x.UserId == userid && x.OrderId == null && x.Isdelete).Select(x => x.Id).ToList();
             List<Guid> awaitingPayment = PendingPaymentOrders(userid).Select(x => x.Id).ToList();
-            List<Guid> ids = cancelledOrReturned.Concat(deleted).Concat(awaitingPayment).Distinct().ToList();
+            // همه‌ی سفارش‌هایِ آنلاینِ پرداخت‌نشده (منتظرِ پرداخت‌ها زیرمجموعه‌ی همین‌اند و بالا
+            // سنجاق می‌شوند؛ آن‌هایی که مهلتشان گذشته با کارتِ عادی زیرشان می‌آیند). از تبِ «جاری»
+            // بیرون آمده‌اند، پس اگر این‌جا نمی‌آمدند در هیچ تبی دیده نمی‌شدند.
+            List<Guid> unpaidOnline = UnpaidOnlineOrders(userid).Select(x => x.Id).ToList();
+            List<Guid> ids = cancelledOrReturned.Concat(deleted).Concat(unpaidOnline).Concat(awaitingPayment).Distinct().ToList();
 
             var baseQuery = GetQueryList().AsNoTracking().Where(x => x.UserId == userid && x.OrderId == null && ids.Contains(x.Id));
             baseQuery = ApplyOrderFilters(baseQuery, date, keyword, filterState);
@@ -1598,6 +1764,21 @@ namespace Repository.Service
             return GetQueryList().AsNoTracking().Where(x => x.UserId == userid && x.OrderId == null && !x.Isdelete
                 && x.OrderWallets.Any(s => s.Wallet.PaymentType != 4 && s.Wallet.PaymentType != 5 && s.Wallet.PaymentType != 3)
                 && x.IsOld == false && x.IsExpire == false && x.ExpireDate > now
+                && !x.OrderWallets.Any(s => s.Wallet.WalletAttributeWallets.Any(r => r.WalletAttribute.DataType == 23))
+                && !x.OrderStates.Any(s => s.state >= OrderStatus.تایید_پرداخت));
+        }
+
+        /// <summary>
+        /// سفارش‌هایِ آنلاینِ پرداخت‌نشده: درگاهِ اینترنتی/قسطی (نه کارت‌به‌کارت ۳، کارتخوان ۴ یا
+        /// نقدی ۵ که پرداختشان بیرون از سایت/موقعِ تحویل است)، استعلامی نیست، و هیچ وضعیتِ
+        /// «تایید پرداخت» یا بعد از آن ندارد. لغوشده‌ها وضعیتِ ۹ (≥ تایید پرداخت) دارند، پس این‌جا
+        /// نمی‌آیند و همچنان از مسیرِ لغوشده‌ها در تبِ «پرداخت‌نشده» هستند. منتظرِ پرداخت‌ها
+        /// (PendingPaymentOrders) زیرمجموعه‌ی همین‌اند.
+        /// </summary>
+        private IQueryable<Order> UnpaidOnlineOrders(string userid)
+        {
+            return GetQueryList().AsNoTracking().Where(x => x.UserId == userid && x.OrderId == null && !x.Isdelete
+                && x.OrderWallets.Any(s => s.Wallet.PaymentType != 3 && s.Wallet.PaymentType != 4 && s.Wallet.PaymentType != 5)
                 && !x.OrderWallets.Any(s => s.Wallet.WalletAttributeWallets.Any(r => r.WalletAttribute.DataType == 23))
                 && !x.OrderStates.Any(s => s.state >= OrderStatus.تایید_پرداخت));
         }

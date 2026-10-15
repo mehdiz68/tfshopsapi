@@ -32,6 +32,9 @@ namespace Domain.ViewModels
         public bool AwaitingPayment { get; set; }
         // چند دقیقه‌ی دیگر قابلِ پرداخت است (برایِ «تا n دقیقه دیگه منتظرِ پرداختِ شما می‌مونه»)
         public int? PaymentMinutesLeft { get; set; }
+        // شیوه‌ی پرداخت (Wallet.PaymentType) - فرانت «در انتظار تایید حسابداری» را فقط برایِ
+        // کارت‌به‌کارت (۳) نشان می‌دهد
+        public int? PaymentType { get; set; }
     }
     public class OrderStateV2
     {

@@ -110,6 +110,10 @@ namespace TfShop.ViewModels.Api.HeaderVM
         public int count { get; set; }
         public long amount { get; set; }
         public string category { get; set; }
+        // طبقِ سندِ اسنپ‌پی (API Document SnappPay.pdf، صفحه‌ی ۱۳: «cartItems - commissionType،
+        // اجباری، Default CommissionType = 100») این پارامترِ *هر قلمِ سبد* است، نه سطحِ بالایِ
+        // درخواست. قبلاً سطحِ بالا فرستاده می‌شد و اسنپ‌پی دو بار گزارش داد که ارسال نشده.
+        public int commissionType { get; set; } = 100;
     }
 
     public class snappCartList

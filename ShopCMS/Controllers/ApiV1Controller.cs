@@ -4995,7 +4995,8 @@ namespace TfShop.Controllers
                     return;
                 }
 
-                var generalCodeGift = uow.GeneralCodeGiftRepository.Get(x => new { x.generalCode, x.MaxValue, x.OfferId, x.Value, x.CodeType, x.Offer.CodeTypeValueCode, x.Offer.offerProductCategories }, x => (x.Code == codeGift || x.GeneralCodeGiftLists.Any(b => b.Code == codeGift)), null, "Offer.offerProductCategories").FirstOrDefault();
+                // همان انتخابِ ردیفِ اعتبارسنجی و OrderService.AddOrder: پیشنهادِ پاک‌نشده، جدیدترین
+                var generalCodeGift = uow.GeneralCodeGiftRepository.Get(x => new { x.generalCode, x.MaxValue, x.OfferId, x.Value, x.CodeType, x.Offer.CodeTypeValueCode, x.Offer.offerProductCategories }, x => (x.Code == codeGift || x.GeneralCodeGiftLists.Any(b => b.Code == codeGift)) && x.Offer.IsDeleted == false, q => q.OrderByDescending(s => s.Id), "Offer.offerProductCategories").FirstOrDefault();
                 if (generalCodeGift != null)
                 {
                     if (generalCodeGift.generalCode == GeneralCodeType.تخفیف_ارسال_رایگان)
@@ -5071,14 +5072,14 @@ namespace TfShop.Controllers
                 var usercode = uow.UserCodeGiftRepository.Get(x => new { x.Offer.offerProductCategories, x.Offer, x.UserCodeGiftLogs, x.Code, x.CountUse, x.IsActive, x.MaxValue, x.Offer.ExpireDate, x.Offer.StartDate, eeExpireDate = x.ExpireDate }, x => x.UserId == userid && x.Code == code && x.Offer.IsDeleted == false, q => q.OrderByDescending(s => s.Id), "Offer,UserCodeGiftLogs,Offer.offerProductCategories").FirstOrDefault();
                 if (usercode == null)
                 {
-                    var generalcode = uow.GeneralCodeGiftRepository.Get(x => new { x.Offer.offerProductCategories, x.generalCode, x.Offer, x.GeneralCodeGiftLogs, x.Code, x.CountUse, x.IsActive, x.MaxValue, x.Offer.ExpireDate, x.Offer.StartDate }, x => (x.Code == code || x.GeneralCodeGiftLists.Any(b => b.Code == code)) && x.Offer.IsDeleted == false, null, "Offer,GeneralCodeGiftLists,GeneralCodeGiftLogs,GeneralCodeGiftLogs.Order,Offer.offerProductCategories").FirstOrDefault();
+                    var generalcode = uow.GeneralCodeGiftRepository.Get(x => new { x.Offer.offerProductCategories, x.generalCode, x.Offer, x.GeneralCodeGiftLogs, x.Code, x.CountUse, x.IsActive, x.MaxValue, x.Offer.ExpireDate, x.Offer.StartDate }, x => (x.Code == code || x.GeneralCodeGiftLists.Any(b => b.Code == code)) && x.Offer.IsDeleted == false, q => q.OrderByDescending(s => s.Id), "Offer,GeneralCodeGiftLists,GeneralCodeGiftLogs,GeneralCodeGiftLogs.Order,Offer.offerProductCategories").FirstOrDefault();
                     if (generalcode == null) return Json(new { statusCode = 404 }, JsonRequestBehavior.AllowGet);
                     if (!generalcode.IsActive) return Json(new { statusCode = 404 }, JsonRequestBehavior.AllowGet);
                     if (!generalcode.Offer.IsActive) return Json(new { statusCode = 404 }, JsonRequestBehavior.AllowGet);
                     if (!generalcode.Offer.state) return Json(new { statusCode = 404 }, JsonRequestBehavior.AllowGet);
                     if (generalcode.StartDate != null && generalcode.StartDate > date) return Json(new { statusCode = 405 }, JsonRequestBehavior.AllowGet);
                     if (generalcode.ExpireDate != null && generalcode.ExpireDate < date) return Json(new { statusCode = 406 }, JsonRequestBehavior.AllowGet);
-                    if (generalcode.GeneralCodeGiftLogs.Where(a => a.state == true && ((a.Order.UserId == userid && a.GeneralCodeGift.CountUseSelect == true) || a.GeneralCodeGift.CountUseSelect == false)).Count() >= generalcode.CountUse && generalcode.CountUse > 0)
+                    if (generalcode.GeneralCodeGiftLogs.Where(a => a.state == true && ((a.Order != null && a.Order.UserId == userid && a.GeneralCodeGift.CountUseSelect == true) || a.GeneralCodeGift.CountUseSelect == false)).Count() >= generalcode.CountUse && generalcode.CountUse > 0)
                         return Json(new { statusCode = 407 }, JsonRequestBehavior.AllowGet);
                     if (generalcode.generalCode == GeneralCodeType.تخفیف_اولین_سفارش && uow.OrderRepository.Any(x => x.Id, x => x.UserId == userid && x.OrderStates.Any(a => a.state == OrderStatus.تایید_پرداخت)))
                         return Json(new { statusCode = 408 }, JsonRequestBehavior.AllowGet);
@@ -6081,8 +6082,7 @@ namespace TfShop.Controllers
                 {
                     amount = amountRial,
                     cartList = new List<snappCartList> { cart },
-                    // مقدارِ ثابتِ ۱۰۰ طبقِ خواسته‌ی اسنپ‌پی (کارمزد کاملاً به عهده‌ی پذیرنده)
-                    commissionType = 100,
+                    // commissionType سطحِ هر قلم است (snappCartItem)، نه این‌جا
                     discountAmount = discountRial,
                     externalSourceAmount = 0,
                     mobile = ToSnappMobile(order.User != null ? order.User.PhoneNumber : ""),
@@ -13610,6 +13610,7 @@ namespace TfShop.Controllers
                 int pageSize = 10;
                 int pageNumber = (page ?? 1);
                 int tabId = tab ?? 1;
+                var ordersTimer = System.Diagnostics.Stopwatch.StartNew();
 
                 // فقط تب فعلی fetch می‌شه (نه هر ۳ تا با هم) تا کاربر با کلیک روی هر تب فقط همون
                 // یکی رو از سرور بگیره؛ بار سنگین صفحه‌بندی/Include هم داخل GetXxxOrderV2 حل شده
@@ -13632,6 +13633,14 @@ namespace TfShop.Controllers
                         break;
                 }
 
+                int pendingPaymentCount = uow.OrderRepository.CountPendingPaymentOrdersV2(userId);
+                ordersTimer.Stop();
+                // فقط درخواست‌هایِ کند ثبت می‌شوند - برایِ دیدنِ عددِ واقعیِ سرعتِ «سفارش‌های من» رویِ سرور
+                if (ordersTimer.ElapsedMilliseconds > 1500)
+                    Infrastructure.EventLog.Logger.Add(5, "api", "Orders-slow", true, 200,
+                        "ms=" + ordersTimer.ElapsedMilliseconds + " tab=" + tabId + " page=" + pageNumber + " total=" + orders.TotalItemCount,
+                        DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+
                 return Json(new
                 {
                     tab = tabId,
@@ -13644,7 +13653,7 @@ namespace TfShop.Controllers
                     Orders = orders,
                     TotalCount = orders.TotalItemCount,
                     // برایِ نشانِ عددیِ رویِ تبِ «پرداخت‌نشده» - مستقل از اینکه کدوم تب باز است
-                    PendingPaymentCount = uow.OrderRepository.CountPendingPaymentOrdersV2(userId),
+                    PendingPaymentCount = pendingPaymentCount,
                     statusCode = 200
                 }, JsonRequestBehavior.AllowGet);
 
