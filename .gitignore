@@ -397,3 +397,7 @@ ShopCMS/Adljoo.csproj
 CoreLib/CoreLib.csproj
 ShopCMS/Web.config
 ShopCMS/Web.config
+
+# آرشیوها (deploy و پشتیبان) هرگز در git نمی‌روند
+*.rar
+*.zip
