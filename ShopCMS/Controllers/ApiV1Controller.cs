@@ -4766,26 +4766,6 @@ namespace TfShop.Controllers
                     .OrderBy(x => x.DisplayOrder)
                     .ToList();
 
-                // گایدلاینِ اسنپ‌پی: عنوان و توضیحِ کنارِ لوگو باید داینامیک و از پاسخِ سرویسِ
-                // eligible باشه (فیلدهای title_message و description)، نه متنِ ثابتِ پنلِ ادمین.
-                // متنِ پنل فقط به‌عنوانِ fallback می‌مونه تا اگه سرویس در دسترس نبود، ردیفِ درگاه
-                // بدونِ متن نمونه. خطا هیچ‌وقت صفحه‌ی پرداخت رو نمی‌شکنه.
-                var snappayBankAccounts = snappayAccountEntities
-                    .Select(b =>
-                    {
-                        string eligibleTitle, eligibleDescription;
-                        GetSnappEligibleMessages(b, basketPriceForCard * 10, out eligibleTitle, out eligibleDescription);
-
-                        return new
-                        {
-                            b.Id,
-                            Title = !string.IsNullOrWhiteSpace(eligibleTitle) ? eligibleTitle : b.Titlesnapppay,
-                            Description = !string.IsNullOrWhiteSpace(eligibleDescription) ? eligibleDescription : b.Descriptionsnapp,
-                            Image = b.Imagesnappay != null ? b.Imagesnappay.FileName : null
-                        };
-                    })
-                    .ToList();
-
                 // معادل CartController.selectPosPay(id, typeid) — ریزحساب هزینه ارسال (بیمه/بسته‌بندی/
                 // پس‌کرایه/هزینه ارسال کارتخوان) + مالیات (کمیسیون درگاه اقساطی)، بر اساس بانک/نوع
                 // پرداختِ *انتخاب‌شده*. تا وقتی کاربر چیزی انتخاب نکرده (bankid خالیه)، این بخش‌ها صفر
@@ -4909,6 +4889,37 @@ namespace TfShop.Controllers
                         commission = Convert.ToInt64(Math.Ceiling(rawCommission * 0.001) * 1000);
                     }
                 }
+
+                // گایدلاینِ اسنپ‌پی: عنوان و توضیحِ کنارِ لوگو باید داینامیک و از پاسخِ سرویسِ
+                // eligible باشه (فیلدهای title_message و description)، نه متنِ ثابتِ پنلِ ادمین.
+                // متنِ پنل فقط به‌عنوانِ fallback می‌مونه تا اگه سرویس در دسترس نبود، ردیفِ درگاه
+                // بدونِ متن نمونه. خطا هیچ‌وقت صفحه‌ی پرداخت رو نمی‌شکنه.
+                // مبلغِ eligible همان مبلغی است که موقعِ توکن پرداخت می‌شود - محصولات + ارسال - تخفیف
+                // + کارمزدِ اسنپ‌پی (همان فرمولِ commissionِ بالا) - وگرنه قسط‌هایِ توضیح کمتر از قسطِ
+                // واقعی درمی‌آمد. (بازه‌ی Min/Max همچنان رویِ basketPriceForCard است، مثلِ سایتِ قدیم.)
+                long snappBase = basketStep1.ProductBasketItems.Sum(x => x.finalPrice * x.UserQuantity) + sumShippingCost - (offPriceType == "کد_بن_تخفیف" ? offPrice : 0);
+                var snappayBankAccounts = snappayAccountEntities
+                    .Select(b =>
+                    {
+                        long snappCommission = 0;
+                        if (b.Commisionsnappay > 0)
+                        {
+                            long rawSnappCommission = Convert.ToInt64(Math.Ceiling(snappBase * (b.Commisionsnappay / 100.0)));
+                            snappCommission = Convert.ToInt64(Math.Ceiling(rawSnappCommission * 0.001) * 1000);
+                        }
+
+                        string eligibleTitle, eligibleDescription;
+                        GetSnappEligibleMessages(b, (snappBase + snappCommission) * 10, out eligibleTitle, out eligibleDescription);
+
+                        return new
+                        {
+                            b.Id,
+                            Title = !string.IsNullOrWhiteSpace(eligibleTitle) ? eligibleTitle : b.Titlesnapppay,
+                            Description = !string.IsNullOrWhiteSpace(eligibleDescription) ? eligibleDescription : b.Descriptionsnapp,
+                            Image = b.Imagesnappay != null ? b.Imagesnappay.FileName : null
+                        };
+                    })
+                    .ToList();
 
                 return Json(new
                 {
