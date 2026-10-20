@@ -401,3 +401,6 @@ ShopCMS/Web.config
 # آرشیوها (deploy و پشتیبان) هرگز در git نمی‌روند
 *.rar
 *.zip
+
+# کلیدهای VAPIDِ اعلانِ مرورگر
+Push.config

@@ -416,6 +416,7 @@
     <Compile Include="Areas\Admin\ViewModels\Report\FactorReport.cs" />
     <Compile Include="Areas\Admin\ViewModels\Report\LabelReport.cs" />
     <Compile Include="Controllers\ApiV1Controller.cs" />
+    <Compile Include="Controllers\PushController.cs" />
     <Compile Include="App_Start\BundleConfig.cs" />
     <Compile Include="App_Start\Combres.cs" />
     <Compile Include="App_Start\FilterConfig.cs" />
