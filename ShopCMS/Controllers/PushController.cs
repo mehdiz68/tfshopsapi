@@ -171,6 +171,71 @@ IF @@ROWCOUNT = 1 UPDATE PushCampaigns SET
             return Json(new { statusCode = 200 });
         }
 
+        /// <summary>
+        /// رفتارِ عضو برایِ علاقه‌مندی (فاز ۲): type = view | cart، با productId (گروه‌هایِ کالا از
+        /// ProductCategorySelect) یا categoryId (صفحه‌ی گروه). امتیاز: بازدید ۱، سبد ۳ (خرید ۵ را TfScheduler
+        /// از سفارش‌هایِ پرداخت‌شده می‌دهد). امتیازِ قبلی با نیمه‌عمرِ ۳۰ روز کم‌رنگ می‌شود.
+        /// «سبد» آخرین کالایِ اضافه‌شده را هم برایِ پیامِ سبدِ رهاشده نگه می‌دارد.
+        /// </summary>
+        [HttpPost]
+        public JsonResult Event(string endpoint, string type, int? productId, int? categoryId)
+        {
+            if (!IsValidEndpoint(endpoint) || (type != "view" && type != "cart") || (!productId.HasValue && !categoryId.HasValue))
+                return Json(new { statusCode = 400 });
+            try
+            {
+                using (var cn = new SqlConnection(ConnectionString))
+                {
+                    cn.Open();
+                    object sid;
+                    using (var cmd = new SqlCommand("SELECT Id FROM PushSubscribers WHERE EndpointHash = @h AND IsActive = 1", cn))
+                    {
+                        cmd.Parameters.AddWithValue("@h", Sha256(endpoint));
+                        sid = cmd.ExecuteScalar();
+                    }
+                    if (sid == null) return Json(new { statusCode = 404 });
+
+                    double weight = type == "cart" ? 3 : 1;
+                    string cats = productId.HasValue
+                        ? "SELECT DISTINCT CatId FROM ProductCategorySelect WHERE ProductId = @p"
+                        : "SELECT @c";
+                    using (var cmd = new SqlCommand(@"
+MERGE PushInterests WITH (HOLDLOCK) AS t
+USING (" + cats + @") AS x(CategoryId) ON t.SubscriberId = @s AND t.CategoryId = x.CategoryId
+WHEN MATCHED THEN UPDATE SET
+    Score = t.Score * POWER(0.5, DATEDIFF(HOUR, t.UpdatedAt, GETDATE()) / 720.0) + @w, UpdatedAt = GETDATE()
+WHEN NOT MATCHED THEN INSERT (SubscriberId, CategoryId, Score, UpdatedAt) VALUES (@s, x.CategoryId, @w, GETDATE());", cn))
+                    {
+                        cmd.Parameters.AddWithValue("@s", sid);
+                        cmd.Parameters.AddWithValue("@w", weight);
+                        if (productId.HasValue) cmd.Parameters.AddWithValue("@p", productId.Value);
+                        else cmd.Parameters.AddWithValue("@c", categoryId.Value);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    if (type == "cart" && productId.HasValue)
+                    {
+                        using (var cmd = new SqlCommand(@"
+MERGE PushCarts WITH (HOLDLOCK) AS t USING (SELECT @s AS SubscriberId) AS x ON t.SubscriberId = x.SubscriberId
+WHEN MATCHED THEN UPDATE SET ProductId = @p, LastAddAt = GETDATE(), RemindedAt = NULL, ClosedAt = NULL
+WHEN NOT MATCHED THEN INSERT (SubscriberId, ProductId, LastAddAt) VALUES (@s, @p, GETDATE());", cn))
+                        {
+                            cmd.Parameters.AddWithValue("@s", sid);
+                            cmd.Parameters.AddWithValue("@p", productId.Value);
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+                }
+                return Json(new { statusCode = 200 });
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "push", "Event", false, 500, Cut(ex.Message, 400), DateTime.Now,
+                    "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { statusCode = 500 });
+            }
+        }
+
         /// <summary>آمارِ روزانه‌ی پنجره‌ی دعوت: shown، accepted، dismissed، granted، denied.</summary>
         [HttpPost]
         public JsonResult Prompt(string e)
@@ -195,6 +260,35 @@ BEGIN CATCH
     UPDATE PushPromptDaily SET " + column + " = " + column + @" + 1 WHERE Day = CAST(GETDATE() AS DATE);
 END CATCH");
             return Json(new { statusCode = 200 });
+        }
+
+        /// <summary>
+        /// متن‌هایِ پنجره‌ی دعوت از تنظیماتِ پنل (PushSettings). کلیدی که نبود null برمی‌گردد و سایت
+        /// متنِ پیش‌فرضِ خودش را نشان می‌دهد.
+        /// </summary>
+        public JsonResult PromptText()
+        {
+            var values = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using (var cn = new SqlConnection(ConnectionString))
+                using (var cmd = new SqlCommand("SELECT [Key], Value FROM PushSettings WHERE [Key] LIKE 'Prompt%'", cn))
+                {
+                    cn.Open();
+                    using (var r = cmd.ExecuteReader())
+                        while (r.Read()) values[r.GetString(0)] = r.GetString(1);
+                }
+            }
+            catch (SqlException)
+            {
+                // جدول نیست - پیش‌فرض‌هایِ سایت
+            }
+            Func<string, string> get = k => { string v; return values.TryGetValue(k, out v) && !string.IsNullOrWhiteSpace(v) ? v : null; };
+            return Json(new
+            {
+                title = get("PromptTitle"), body = get("PromptBody"), yes = get("PromptYes"), no = get("PromptNo"),
+                statusCode = 200
+            }, JsonRequestBehavior.AllowGet);
         }
 
         // ---------------------------------------------------------------- ابزار
