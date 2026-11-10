@@ -70,6 +70,9 @@ namespace Domain
         [Display(Name = "رنگ")]
         public string color { get; set; }
 
+        /// <summary>زمان‌بندی، فعال/غیرفعال و ویدیو (جدولِ SliderImageSettings) - null یعنی فعال و بدونِ تاریخ</summary>
+        public SliderImageSetting Setting { get; set; }
+
 
         #endregion
     }

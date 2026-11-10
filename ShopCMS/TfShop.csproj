@@ -429,6 +429,7 @@
     <Compile Include="Controllers\BaseController.cs" />
     <Compile Include="Controllers\ProfileController.cs" />
     <Compile Include="Controllers\TorobController.cs" />
+    <Compile Include="Controllers\ZarehbinController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>

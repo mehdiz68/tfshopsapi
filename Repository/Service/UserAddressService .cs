@@ -45,7 +45,7 @@ namespace Repository.Service
         public async Task addUserAddress(UserAddress useraddress)
         {
             Insert(useraddress);
-            await context.SaveChangesAsync();
+            await SaveAllowingEmptyNumber(useraddress);
         }
 
 
@@ -57,7 +57,31 @@ namespace Repository.Service
         public async Task EditUserAddress(UserAddress useraddress)
         {
             Update(useraddress);
-            await context.SaveChangesAsync();
+            await SaveAllowingEmptyNumber(useraddress);
+        }
+
+        /// <summary>
+        /// پلاک اختیاری است (فرمِ آدرسِ سایت)، ولی در Domain رویِ AddressNumber هنوز [Required] هست - برداشتنش مدلِ EF را
+        /// عوض می‌کند و auto-migration راه می‌اندازد. برایِ همین آدرسِ بی‌پلاک با رشته‌ی خالی و فقط در همین ذخیره بدونِ
+        /// اعتبارسنجیِ EF ذخیره می‌شود (نمایش‌ها همه IsNullOrEmpty را چک می‌کنند). بقیه‌ی فیلدها را فرم و ستون‌هایِ دیتابیس می‌پایند.
+        /// </summary>
+        private async Task SaveAllowingEmptyNumber(UserAddress useraddress)
+        {
+            if (!string.IsNullOrWhiteSpace(useraddress.AddressNumber))
+            {
+                await context.SaveChangesAsync();
+                return;
+            }
+            useraddress.AddressNumber = "";
+            context.Configuration.ValidateOnSaveEnabled = false;
+            try
+            {
+                await context.SaveChangesAsync();
+            }
+            finally
+            {
+                context.Configuration.ValidateOnSaveEnabled = true;
+            }
         }
 
         public async Task<bool> UserHasAnyAddress(string userid)

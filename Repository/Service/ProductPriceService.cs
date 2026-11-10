@@ -50,7 +50,7 @@ namespace Repository.Service
                 Descr = x.Product.Descr,
                 Code = x.code,
                 ProductState = x.ProductState,
-                ProductIcon = x.Product.ProductIcon,
+                ProductIcon = ProductService.LeanIcon(x.Product.ProductIcon),
                 Brand = x.Product.Brand,
                 MainImageFileName = x.ProductImages.Where(s => s.IsMain).Any() ? x.ProductImages.Where(s => s.IsMain).FirstOrDefault().Image.FileName : _productService.GetMainImageFileName(x.ProductId),
                 OtherImages = x.ProductImages.Where(s => !s.IsMain),
@@ -259,7 +259,7 @@ namespace Repository.Service
                 PageAddress = x.Product.PageAddress,
                 Code = x.code,
                 ProductState = x.ProductState,
-                ProductIcon = x.Product.ProductIcon,
+                ProductIcon = ProductService.LeanIcon(x.Product.ProductIcon),
                 MainImageFileName = x.ProductImages.Where(s => s.IsMain).Any() ? x.ProductImages.Where(s => s.IsMain).FirstOrDefault().Image.FileName : _productService.GetMainImageFileName(x.ProductId)
 
             });

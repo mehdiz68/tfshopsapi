@@ -67,6 +67,8 @@ namespace TfShop.ViewModels.Home
         public int DisplayOrder { get; set; }
         public string  icon { get; set; }
         public string Cover { get; set; }
+        /// <summary>تصویرِ صفحه‌ی اصلی (Menus.HomeCover)؛ فقط GetMenu پر می‌کند - جایگزینِ آیکون در منویِ هدرِ دسکتاپ</summary>
+        public string HomeCover { get; set; }
         public bool IsRoot { get; set; }
         public int parentId { get; set; }
 

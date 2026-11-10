@@ -746,7 +746,7 @@ namespace TfShop.Controllers
             try
             {
                 List<DisplayMenu> DisplayMenus = new List<DisplayMenu>();
-                foreach (var item in context.Menus.AsQueryable().AsNoTracking().Include("attachment").Where(x => x.IsActive == true && (x.PlaceShow == 3 || x.PlaceShow == w)).OrderBy(x => x.DisplaySort).ToList())
+                foreach (var item in context.Menus.AsQueryable().AsNoTracking().Include("attachment").Include("Homeattachment").Where(x => x.IsActive == true && (x.PlaceShow == 3 || x.PlaceShow == w)).OrderBy(x => x.DisplaySort).ToList())
                 {
                     DisplayMenu dm = new ViewModels.Home.DisplayMenu();
                     dm.Id = item.Id;
@@ -754,6 +754,7 @@ namespace TfShop.Controllers
                         dm.Cover = item.attachment.FileName;
                     else
                         dm.Cover = null;
+                    dm.HomeCover = item.HomeCover != null && item.Homeattachment != null ? item.Homeattachment.FileName : null;
                     dm.icon = item.icon;
                     dm.IsRoot = (item.LinkId.HasValue ? (item.LinkId == 400 && item.TypeId == 11 ? true : false) : false);
                     dm.menuLink = item.FinalLink;
@@ -1221,10 +1222,27 @@ namespace TfShop.Controllers
         {
             try
             {
+                // فقط اسلایدهایِ فعال و در بازه‌ی زمانیِ خودشان (Domain.SliderImageSetting؛ نبودنِ ردیف = فعال)،
+                // به ترتیبِ نمایش، با ویدیو
+                var now = DateTime.Now;
+                var slides = context.SliderImages.AsNoTracking()
+                    .Where(x => x.Slider.IsActive && x.Slider.LinkId == 400
+                        && (x.Setting == null || (x.Setting.IsActive
+                            && (x.Setting.StartAt == null || x.Setting.StartAt <= now)
+                            && (x.Setting.EndAt == null || x.Setting.EndAt > now))))
+                    .OrderBy(x => x.DisplaySort).ThenBy(x => x.Id)
+                    .Select(x => new
+                    {
+                        image = x.attachment.FileName,
+                        title = x.Title,
+                        link = x.Link,
+                        video = x.Setting != null && x.Setting.Video != null ? x.Setting.Video.FileName : null
+                    })
+                    .ToList();
 
                 return Json(new
                 {
-                    data = context.SliderImages.AsQueryable().Include("attachment").AsNoTracking().Where(x => x.Slider.IsActive && x.Slider.LinkId == 400).Select(x => new ViewModels.Api.HomePage.Master() { image = x.attachment.FileName, title = x.Title, link = x.Link }).ToList(),
+                    data = slides,
                     statusCode = 200
                 }, JsonRequestBehavior.AllowGet);
 
@@ -1267,6 +1285,146 @@ namespace TfShop.Controllers
             }
 
 
+        }
+
+        /// <summary>
+        /// «تی‌اف شو»: ویدیوهایِ فعال به ترتیبِ نمایش، برایِ نمایشگرِ استوریِ سایت (منویی با لینکِ /tfshow).
+        /// type = aparat (پخش در iframeِ آپارات؛ پایان با duration) یا file (mp4 در UploadFiles).
+        /// </summary>
+        [HttpGet]
+        public JsonResult ShowTfShow()
+        {
+            try
+            {
+                var videos = context.TfShowVideos.AsNoTracking()
+                    .Where(x => x.IsActive && (x.VideoId.HasValue || x.AparatHash != null))
+                    .OrderBy(x => x.DisplaySort).ThenBy(x => x.Id)
+                    .Select(x => new
+                    {
+                        x.Id, x.Title, x.AparatHash, x.PosterUrl, x.DurationSeconds, x.ButtonTitle, x.ButtonUrl, x.Caption,
+                        file = x.Video.FileName, cover = x.Cover.FileName
+                    })
+                    .ToList()
+                    .Select(x => new
+                    {
+                        id = x.Id,
+                        title = x.Title,
+                        type = x.file != null ? "file" : "aparat",
+                        hash = x.file != null ? null : x.AparatHash,
+                        file = x.file,
+                        poster = x.cover != null ? "https://static.tfshops.com/UploadFiles/" + x.cover : x.PosterUrl,
+                        duration = x.DurationSeconds,
+                        buttonTitle = x.ButtonTitle,
+                        buttonUrl = x.ButtonUrl,
+                        caption = x.Caption
+                    })
+                    .ToList();
+                return Json(new { data = videos, statusCode = 200 }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "showtfshow", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { msg = ex.Message, statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        /// <summary>
+        /// «محبوب‌ترین برندها»یِ صفحه‌ی اصلیِ موبایل: برندهایی که «نمایش در صفحه اصلی» دارند، با «کاورِ صفحه‌ی
+        /// اصلی» و اگر نداشتند کاورِ اصلیِ برند. (ShowTopbrand فقط برندهایِ دارایِ کاورِ صفحه‌ی اصلی را می‌دهد و
+        /// دسکتاپ از آن استفاده می‌کند؛ دست نخورده.)
+        /// </summary>
+        [HttpGet]
+        public JsonResult ShowHomeBrands(int? take)
+        {
+            try
+            {
+                int t = take.HasValue && take.Value > 0 && take.Value <= 50 ? take.Value : 20;
+                var brands = context.Brands.AsNoTracking()
+                    .Where(x => x.IsShowHomePage && x.LanguageId == 1 && (x.CoverHomePage.HasValue || x.AttachementId.HasValue))
+                    .OrderBy(x => Guid.NewGuid()).Take(t)
+                    .Select(x => new { x.Id, x.Name, x.PersianName, home = x.attachmentHomePage.FileName, cover = x.attachment.FileName })
+                    .ToList()
+                    .Select(x => new
+                    {
+                        image = x.home ?? x.cover,
+                        title = string.IsNullOrWhiteSpace(x.PersianName) ? x.Name : x.PersianName,
+                        link = "/tfb/" + x.Id + "/" + CommonFunctions.NormalizeAddress(x.Name)
+                    })
+                    .Where(x => !string.IsNullOrEmpty(x.image))
+                    .ToList();
+                return Json(new { data = brands, statusCode = 200 }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "showhomebrands", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { msg = ex.Message, statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        /// <summary>
+        /// «دسته‌بندی محصولات»یِ صفحه‌ی اصلیِ موبایل: زیرگروه‌هایِ سطحِ ۱ که «نمایش در صفحه اصلی» دارند، به ترتیبِ Sort،
+        /// با «کاورِ صفحه‌ی اصلی» و اگر نداشتند کاورِ اصلیِ دسته. (ShowTopCategory/ShowTopCategories مالِ دسکتاپ‌اند؛ دست نخورده.)
+        /// </summary>
+        [HttpGet]
+        public JsonResult ShowHomeCategories(int? take)
+        {
+            try
+            {
+                int t = take.HasValue && take.Value > 0 && take.Value <= 50 ? take.Value : 24;
+                var cats = context.ProductCategories.AsNoTracking()
+                    .Where(x => x.IsShowHomePage && x.IsActive && !x.hidden && x.LanguageId == 1 && (x.MenuIconMobile.HasValue || x.CoverHomePage.HasValue || x.Cover.HasValue)
+                        && x.ParrentId != null && x.ParentCat.ParrentId == null) // فقط زیرگروهِ سطحِ ۱ (نه دسته‌هایِ والد، نه سطح‌هایِ پایین‌تر)
+                    .OrderBy(x => x.Sort).ThenBy(x => x.Id).Take(t)
+                    .Select(x => new { x.Id, x.Name, x.PageAddress2, icon = x.MenuaIconttachmentMobile.FileName, home = x.attachmentHomePage.FileName, cover = x.attachment.FileName })
+                    .ToList()
+                    .Select(x => new
+                    {
+                        image = x.icon ?? x.home ?? x.cover, // آیکونِ گروه (پنلِ «آیکون و تصاویر گروه») مقدم است
+                        title = x.Name,
+                        link = "/tfs/" + x.Id + "/" + CommonFunctions.NormalizeAddress((x.PageAddress2 ?? x.Name ?? "").ToLower())
+                    })
+                    .Where(x => !string.IsNullOrEmpty(x.image))
+                    .ToList();
+                return Json(new { data = cats, statusCode = 200 }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "showhomecategories", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { msg = ex.Message, statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        /// <summary>
+        /// «پیشنهاد ویژه»یِ صفحه‌ی اصلیِ موبایل: زیرگروه‌هایِ سطحِ ۲ (والدشان زیرگروهِ سطحِ ۱ است) به‌صورتِ تصادفی،
+        /// با «کاورِ صفحه‌ی اصلی» و اگر نداشتند کاورِ اصلیِ دسته.
+        /// </summary>
+        [HttpGet]
+        public JsonResult ShowSpecialCategories(int? take)
+        {
+            try
+            {
+                int t = take.HasValue && take.Value > 0 && take.Value <= 50 ? take.Value : 12;
+                var cats = context.ProductCategories.AsNoTracking()
+                    .Where(x => x.IsActive && !x.hidden && x.LanguageId == 1 && (x.MenuIconMobile.HasValue || x.CoverHomePage.HasValue || x.Cover.HasValue)
+                        && x.ParrentId != null && x.ParentCat.ParrentId != null && x.ParentCat.ParentCat.ParrentId == null)
+                    .OrderBy(x => Guid.NewGuid()).Take(t)
+                    .Select(x => new { x.Id, x.Name, x.PageAddress2, icon = x.MenuaIconttachmentMobile.FileName, home = x.attachmentHomePage.FileName, cover = x.attachment.FileName })
+                    .ToList()
+                    .Select(x => new
+                    {
+                        image = x.icon ?? x.home ?? x.cover, // آیکونِ گروه (پنلِ «آیکون و تصاویر گروه») مقدم است
+                        title = x.Name,
+                        link = "/tfs/" + x.Id + "/" + CommonFunctions.NormalizeAddress((x.PageAddress2 ?? x.Name ?? "").ToLower())
+                    })
+                    .Where(x => !string.IsNullOrEmpty(x.image))
+                    .ToList();
+                return Json(new { data = cats, statusCode = 200 }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "showspecialcategories", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { msg = ex.Message, statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
         }
 
         [HttpGet]
@@ -1599,19 +1757,51 @@ namespace TfShop.Controllers
         }
 
         [HttpGet]
-        public JsonResult AmazingProducts()
+        public JsonResult AmazingProducts(int? take)
         {
             try
             {
                 var date = DateTime.Now;
-                int amaztake = Request.Browser.IsMobileDevice ? 4 : 5;
+                // take: تعدادِ کالایِ هر کمپین از Next (موبایل ۸)؛ بدونِ آن مثلِ قبل. تشخیصِ موبایل این‌جا بی‌اثر است،
+                // چون درخواست را سرورِ Next می‌فرستد نه گوشیِ کاربر.
+                int amaztake = take.HasValue && take.Value > 0 && take.Value <= 20 ? take.Value : (Request.Browser.IsMobileDevice ? 4 : 5);
                 //تخفیفات
                 var amazingOffers = new List<AmazingOffersVM>();
                 foreach (var item in context.Offers.AsQueryable().AsNoTracking().Where(x => x.CodeTypeValueCode == 1 && x.IsActive && x.LanguageId == 1 && x.state && ((x.ExpireDate != null && x.ExpireDate >= date) || x.ExpireDate == null) && ((x.StartDate != null && x.StartDate <= date) || x.StartDate == null) && x.ProductOffers.Any()).Include("ProductOffers.ProductPrice.Product").Include("attachment").OrderByDescending(s => s.Id).Skip(() => 0).Take(() => 6).ToList())
                 {
-                    List<int> ids = new List<int>();
-                    ids.AddRange(item.ProductOffers.Where(x => x.Quantity > 0 && x.Value > 0 && x.ProductPrice.IsActive && x.ProductPrice.IsDefault && x.ProductPrice.Quantity > 0 && x.ProductPrice.ProductStateId == 1).OrderByDescending(x => x.ProductPrice.Product.Visits).Take(50).OrderBy(s => Guid.NewGuid()).Select(x => x.ProductPrice.ProductId).Take(amaztake).ToList());
-                    amazingOffers.Add(new AmazingOffersVM() { Id = item.Id, Color = item.color, Title = item.Title, Cover = item.Cover.HasValue ? item.attachment.FileName : "", EndDate = item.ExpireDate.HasValue ? item.ExpireDate.Value.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) + " " + item.ExpireDate.Value.ToString("HH:mm:ss", CultureInfo.InvariantCulture) : null, ProductItems = productlist(null, null, ids, null, false, false, 0, false, true, 0, amaztake) });
+                    // کالاهایِ واجدِ شرایطِ کمپین، بدونِ تکرار (چند ردیفِ ProductOffer برایِ یک کالا قبلاً جایِ خالی می‌ساخت)
+                    // و فقط کالایِ فعال (کالایِ غیرفعال در productlist حذف می‌شد و تعداد کم می‌آمد)
+                    var candidates = item.ProductOffers.Where(x => x.Quantity > 0 && x.Value > 0 && x.ProductPrice.IsActive && x.ProductPrice.IsDefault && x.ProductPrice.Quantity > 0 && x.ProductPrice.ProductStateId == 1 && x.ProductPrice.Product.IsActive)
+                        .Select(x => x.ProductPrice.ProductId).Distinct().ToList();
+                    // کمپینِ بی‌کالا رد می‌شود: با فهرستِ خالی، productlist بی‌فیلتر کالاهایِ تصادفیِ کلِ سایت را می‌داد
+                    if (candidates.Count == 0)
+                        continue;
+
+                    // انتخابِ تصادفی از همه‌ی گروه‌هایِ کمپین: کالاها بر اساسِ گروهشان دسته و نوبتی (یکی از هر گروه) برداشته
+                    // می‌شوند تا یک گروهِ پرکالا کلِ ردیف را نگیرد. قبلاً فقط از ۵۰ کالایِ پربازدید انتخاب می‌شد.
+                    var productCats = context.Products.AsNoTracking().Where(p => candidates.Contains(p.Id))
+                        .Select(p => new { p.Id, Cat = p.ProductCategories.Where(c => c.hidden == false).OrderBy(c => c.Id).Select(c => (int?)c.Id).FirstOrDefault() })
+                        .ToList();
+                    var rnd = new Random();
+                    var groups = productCats.GroupBy(c => c.Cat ?? 0)
+                        .Select(g => new Queue<int>(g.Select(x => x.Id).OrderBy(_ => rnd.Next())))
+                        .OrderBy(_ => rnd.Next()).ToList();
+                    var ids = new List<int>();
+                    while (ids.Count < amaztake && groups.Any(q => q.Count > 0))
+                    {
+                        foreach (var q in groups)
+                        {
+                            if (ids.Count >= amaztake) break;
+                            if (q.Count > 0) ids.Add(q.Dequeue());
+                        }
+                    }
+                    if (ids.Count == 0)
+                        continue;
+
+                    // productlist ترتیبِ خودش را دارد؛ ترتیبِ تصادفیِ بالا حفظ می‌شود
+                    var items = productlist(null, null, ids, null, false, false, 0, false, true, 0, amaztake).ToList();
+                    items = items.OrderBy(p => ids.IndexOf(p.Id)).ToList();
+                    amazingOffers.Add(new AmazingOffersVM() { Id = item.Id, Color = item.color, BackColor = item.Backcolor, timerPosition = item.timerPosition, Title = item.Title, Cover = item.Cover.HasValue ? item.attachment.FileName : "", EndDate = item.ExpireDate.HasValue ? item.ExpireDate.Value.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) + " " + item.ExpireDate.Value.ToString("HH:mm:ss", CultureInfo.InvariantCulture) : null, ProductItems = items });
                 }
                 return Json(new
                 {
@@ -7458,6 +7648,7 @@ namespace TfShop.Controllers
                 return products.Include(x => x.ProductPrices).Include("ProductPrices.ProductState").Include("ProductPrices.ProductAttributeSelectModel").Include("ProductPrices.ProductAttributeSelectColor").Include("ProductIcon").AsNoTracking().Skip(() => skip).Take(() => take).ToList().Select(x => new ProductItemVM()
                 {
                     Id = x.Id,
+                    name = x.Name,
                     PrId = x.ProductPrices.Any(a => a.IsDefault) ? x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().Id : 0,
                     shortTitle = x.ProductPrices.Count > 1 ? (x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductAttributeSelectModelId.HasValue ? " مدل " + x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductAttributeSelectModel.Value : "") : x.Title,
                     title = x.Title,
@@ -7794,6 +7985,25 @@ namespace TfShop.Controllers
 
         #region product category
 
+        /// <summary>
+        /// ریدایرکتِ 301ِ گروه/زیرگروه (پنل: «مدیریتِ گروه‌ها» و ریدایرکت‌هایِ نوعِ ۴/۵). قبل از چکِ وجودِ گروه صدا
+        /// زده می‌شود، چون گروهِ حذف‌شده هم ریدایرکت دارد. وقتی مقصد خودش یک گروه است، آدرس هر بار از رویِ همان
+        /// گروه ساخته می‌شود تا عوض شدنِ آدرس یا والدِ مقصد (/tfc یا /tfs) ریدایرکت را خراب نکند.
+        /// </summary>
+        private string CategoryRedirectUrl(int catId)
+        {
+            var r = uow.RedirectUrlRepository.Get(x => x, x => (x.SourceTypeId == 4 || x.SourceTypeId == 5) && x.SourceLinkId == catId && x.IsActive).FirstOrDefault();
+            if (r == null)
+                return null;
+            if (r.DestinationTypeId == 4 || r.DestinationTypeId == 5)
+            {
+                var d = uow.ProductCategoryRepository.Get(x => new { x.Id, x.ParrentId, x.PageAddress }, x => x.Id == r.DestinationLinkId).FirstOrDefault();
+                if (d != null)
+                    return string.Format(d.ParrentId == null ? "/tfc/{0}/{1}" : "/tfs/{0}/{1}", d.Id, CommonFunctions.NormalizeAddress((d.PageAddress ?? "").ToLower()));
+            }
+            return string.IsNullOrEmpty(r.DestinationUrl) ? null : r.DestinationUrl;
+        }
+
         [HttpGet]
         public JsonResult GetProductCategory(int? id, string title, bool mobile)
         {
@@ -7803,6 +8013,16 @@ namespace TfShop.Controllers
                 {
                     url = "/",
                     statusCode = 404
+                }, JsonRequestBehavior.AllowGet);
+            }
+
+            var redirectUrl = CategoryRedirectUrl(id.Value);
+            if (redirectUrl != null)
+            {
+                return Json(new
+                {
+                    url = redirectUrl,
+                    statusCode = 301
                 }, JsonRequestBehavior.AllowGet);
             }
 
@@ -7817,7 +8037,7 @@ namespace TfShop.Controllers
             var date = DateTime.Now.Date;
             try
             {
-                var pr = uow.ProductCategoryRepository.GetQueryList().Include("attachment").Include("ChildCategory.attachment").AsNoTracking().Where(x => x.Id == id).Select(x => new { x.Id, x.ParrentId, x.Title, x.Name, x.Abstract, PageAddress = x.PageAddress.ToLower(), x.Sort, ChildCategory = x.ChildCategory.Select(s => new { s.Sort, s.hidden, s.Cover, attachment = s.attachment != null ? s.attachment.FileName : "", s.Id, s.Title, s.Name, s.Abstract, PageAddress = s.PageAddress.ToLower(), ChildCategory = s.ChildCategory.Select(s2 => new { s2.Sort, s2.hidden, s2.Cover, attachment = s2.attachment != null ? s2.attachment.FileName : "", s2.Id, s2.Title, s2.Name, s2.Abstract, PageAddress = s2.PageAddress.ToLower() }) }) }).SingleOrDefault();
+                var pr = uow.ProductCategoryRepository.GetQueryList().Include("attachment").Include("ChildCategory.attachment").AsNoTracking().Where(x => x.Id == id).Select(x => new { x.Id, x.ParrentId, x.Title, x.Name, x.H1Title, x.Abstract, PageAddress = x.PageAddress.ToLower(), x.Sort, ChildCategory = x.ChildCategory.Select(s => new { s.Sort, s.hidden, s.Cover, attachment = s.attachment != null ? s.attachment.FileName : "", icon = s.MenuaIconttachmentMobile != null ? s.MenuaIconttachmentMobile.FileName : null, s.Id, s.Title, s.Name, s.Abstract, PageAddress = s.PageAddress.ToLower(), ChildCategory = s.ChildCategory.Select(s2 => new { s2.Sort, s2.hidden, s2.Cover, attachment = s2.attachment != null ? s2.attachment.FileName : "", s2.Id, s2.Title, s2.Name, s2.Abstract, PageAddress = s2.PageAddress.ToLower() }) }) }).SingleOrDefault();
                 // title = title.Replace("-", " ").ToLower();
                 if (pr.ParrentId != null)
                 {
@@ -7870,7 +8090,7 @@ namespace TfShop.Controllers
                         NewProductItems = uow.ProductRepository.ProductItemList(x => x.ProductCategories.Any(s => s.hidden == false && CatIds.Contains(s.Id)) && x.IsActive && x.LanguageId == 1 && x.ProductPrices.Any(z => z.IsDefault) && x.state == 4 && (x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId == 1 || x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId == 2 || x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId == 6), x => x.OrderByDescending(o => o.Id), 0, 15).ToList(),
                         PopularProductItems = uow.ProductRepository.ProductItemList(x => x.ProductCategories.Any(s => s.hidden == false && CatIds.Contains(s.Id)) && x.IsActive && x.LanguageId == 1 && x.ProductPrices.Any(z => z.IsDefault) && x.state == 4 && (x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId == 1 || x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId == 2 || x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId == 6), x => x.OrderByDescending(o => o.FavCount), 0, 15).ToList(),
                         MostOrderProductItems = uow.ProductRepository.ProductItemList(x => x.ProductCategories.Any(s => s.hidden == false && CatIds.Contains(s.Id)) && x.IsActive && x.LanguageId == 1 && x.ProductPrices.Any(z => z.IsDefault) && x.state == 4 && (x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId == 1 || x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId == 2 || x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId == 6), x => x.OrderByDescending(o => o.SellCount), 0, 15).ToList(),
-                        ChildProductCategories = pr.ChildCategory.Where(x => x.hidden == false).Select(x => new { x.Sort, x.Id, title = x.Title, x.Name, link = "/tfs/" + x.Id + "/" + CoreLib.Infrastructure.CommonFunctions.NormalizeAddress(x.PageAddress.ToLower()), image = x.attachment }).OrderBy(x => x.Sort),
+                        ChildProductCategories = pr.ChildCategory.Where(x => x.hidden == false).Select(x => new { x.Sort, x.Id, title = x.Title, x.Name, link = "/tfs/" + x.Id + "/" + CoreLib.Infrastructure.CommonFunctions.NormalizeAddress(x.PageAddress.ToLower()), image = x.icon ?? x.attachment }).OrderBy(x => x.Sort).ThenBy(x => x.Id),
                         statusCode = 200
                     }, JsonRequestBehavior.AllowGet);
                 }
@@ -8219,6 +8439,17 @@ namespace TfShop.Controllers
                 }, JsonRequestBehavior.AllowGet);
             }
 
+            // پیش از چکِ وجودِ گروه (گروهِ حذف‌شده هم ریدایرکت دارد) - جایِ چکِ قبلیِ نوعِ ۵ که بعد از آن بود
+            var redirectUrl = CategoryRedirectUrl(id.Value);
+            if (redirectUrl != null)
+            {
+                return Json(new
+                {
+                    url = redirectUrl,
+                    statusCode = 301
+                }, JsonRequestBehavior.AllowGet);
+            }
+
             if (!uow.ProductCategoryRepository.Any(x => x.Id, x => x.Id == id.Value))
             {
                 return Json(new
@@ -8238,15 +8469,6 @@ namespace TfShop.Controllers
 
             try
             {
-                if (uow.RedirectUrlRepository.Any(x => x.Id, x => x.SourceTypeId == 5 && x.SourceLinkId == id.Value))
-                {
-                    return Json(new
-                    {
-                        url = uow.RedirectUrlRepository.Get(x => x.DestinationUrl, x => x.SourceTypeId == 5 && x.SourceLinkId == id.Value).First(),
-                        statusCode = 301
-                    }, JsonRequestBehavior.AllowGet);
-                }
-
                 #region اعتبار سنجی اولیه
                 var url = Request.RawUrl.Split('?');
                 var totlaFilters = getUrlParameter(Server.UrlDecode(Request.RawUrl));
@@ -8267,11 +8489,14 @@ namespace TfShop.Controllers
                     PageAddress2 = c.PageAddress2.ToLower(),
                     Descr2 = c.Descr2,
                     Title2 = c.Title2,
+                    H1Title2 = c.H1Title2,
                     attachmentFileName = c.attachment.FileName,
                     CoverHasValue = c.Cover.HasValue,
                     Data = c.Data,
                     productCategoryFAQs = c.productCategoryFAQs,
-                    childcats = c.ChildCategory.Where(x => x.hidden == false)
+                    childcats = c.ChildCategory.Where(x => x.hidden == false) // نامِ فایل‌ها در همین query (lazy load رویِ AsNoTracking نال می‌داد)
+                        .OrderBy(x => x.Sort).ThenBy(x => x.Id) // ترتیبِ نمایش مثلِ منو و صفحه‌ی tfc (پنلِ «آیکون و تصاویر گروه»)
+                        .Select(x => new { x.Sort, x.Id, x.Title, x.Name, x.PageAddress2, icon = x.MenuaIconttachmentMobile.FileName, cover = x.attachment.FileName })
                 }).FirstOrDefault(x => x.Id == id.Value);
 
 
@@ -8288,7 +8513,7 @@ namespace TfShop.Controllers
                 string normalizedDbTitle = CommonFunctions.NormalizeAddress(prcat.PageAddress2.ToLower());
                 //string normalizedIncomingTitle = CommonFunctions.NormalizeAddress(incomingTitle);
 
-                var ChildCats = prcat.childcats.Select(x => new { x.Sort, x.Id, title = x.Title, x.Name, link = CommonFunctions.NormalizeAddress(x.PageAddress2.ToLower()), image = x.Cover.HasValue ? x.attachment.FileName : "default-thumbnail.jpg" }).ToList();
+                var ChildCats = prcat.childcats.Select(x => new { x.Sort, x.Id, title = x.Title, x.Name, link = CommonFunctions.NormalizeAddress(x.PageAddress2.ToLower()), image = x.icon ?? x.cover ?? "default-thumbnail.jpg" }).ToList(); // آیکونِ گروه مقدم است
                 var productGoogleFaq = prcat.productCategoryFAQs.Select(x => new ProductFAQGoogleList
                 {
                     @type = "Question",
@@ -8599,7 +8824,7 @@ namespace TfShop.Controllers
                     FAQs = productCategoryFAQs,
                     pagging = paggingModel,
                     products = Products,
-                    data = new { Name = prcat.Name, Title = prcat.Title2, attachmentFileName = prcat.attachmentFileName, Data = prcat.Data },
+                    data = new { Name = prcat.Name, Title = prcat.Title2, H1 = prcat.H1Title2, attachmentFileName = prcat.attachmentFileName, Data = prcat.Data },
                     TopAdverestings = mobile ? uow.AdverestingRepository.GetQueryList().AsNoTracking().Where(x => x.Position == 1 && x.TypeId == 6 && x.LinkId == prcat.Id && x.IsActive && ((x.ExpireDate != null && x.ExpireDate >= date) || x.ExpireDate == null) && ((x.StartDate != null && x.StartDate <= date) || x.StartDate == null)).Include("attachment").Include("attachment2").Select(x => new Domain.ViewModels.adverestingShow { AdverestingSizeId = x.AdverestingSizeId, attachmentFileName = x.Cover2.HasValue ? x.attachment2.FileName : x.attachment.FileName, Id = x.Id, Link = x.Link, Position = x.Position, Title = x.Title, TypeLink = x.TypeLink }).ToList() : uow.AdverestingRepository.GetQueryList().AsNoTracking().Where(x => x.Position == 1 && x.TypeId == 6 && x.LinkId == prcat.Id && x.IsActive && ((x.ExpireDate != null && x.ExpireDate >= date) || x.ExpireDate == null) && ((x.StartDate != null && x.StartDate <= date) || x.StartDate == null)).Include("attachment").Select(x => new Domain.ViewModels.adverestingShow { AdverestingSizeId = x.AdverestingSizeId, attachmentFileName = x.attachment.FileName, Id = x.Id, Link = x.Link, Position = x.Position, Title = x.Title, TypeLink = x.TypeLink }).ToList(),
                     RightAdverestings = mobile ? uow.AdverestingRepository.GetQueryList().AsNoTracking().Where(x => x.Position == 2 && x.TypeId == 6 && x.LinkId == prcat.Id && x.IsActive && ((x.ExpireDate != null && x.ExpireDate >= date) || x.ExpireDate == null) && ((x.StartDate != null && x.StartDate <= date) || x.StartDate == null)).Include("attachment").Include("attachment2").Select(x => new Domain.ViewModels.adverestingShow { AdverestingSizeId = x.AdverestingSizeId, attachmentFileName = x.Cover2.HasValue ? x.attachment2.FileName : x.attachment.FileName, Id = x.Id, Link = x.Link, Position = x.Position, Title = x.Title, TypeLink = x.TypeLink }).ToList() : uow.AdverestingRepository.GetQueryList().AsNoTracking().Where(x => x.Position == 2 && x.TypeId == 6 && x.LinkId == prcat.Id && x.IsActive && ((x.ExpireDate != null && x.ExpireDate >= date) || x.ExpireDate == null) && ((x.StartDate != null && x.StartDate <= date) || x.StartDate == null)).Include("attachment").Select(x => new Domain.ViewModels.adverestingShow { AdverestingSizeId = x.AdverestingSizeId, attachmentFileName = x.attachment.FileName, Id = x.Id, Link = x.Link, Position = x.Position, Title = x.Title, TypeLink = x.TypeLink }).ToList(),
                     BotomAdverestings = mobile ? uow.AdverestingRepository.GetQueryList().AsNoTracking().Where(x => x.Position == 3 && x.TypeId == 6 && x.LinkId == prcat.Id && x.IsActive && ((x.ExpireDate != null && x.ExpireDate >= date) || x.ExpireDate == null) && ((x.StartDate != null && x.StartDate <= date) || x.StartDate == null)).Include("attachment").Include("attachment2").Select(x => new Domain.ViewModels.adverestingShow { AdverestingSizeId = x.AdverestingSizeId, attachmentFileName = x.Cover2.HasValue ? x.attachment2.FileName : x.attachment.FileName, Id = x.Id, Link = x.Link, Position = x.Position, Title = x.Title, TypeLink = x.TypeLink }).ToList() : uow.AdverestingRepository.GetQueryList().AsNoTracking().Where(x => x.Position == 3 && x.TypeId == 6 && x.LinkId == prcat.Id && x.IsActive && ((x.ExpireDate != null && x.ExpireDate >= date) || x.ExpireDate == null) && ((x.StartDate != null && x.StartDate <= date) || x.StartDate == null)).Include("attachment").Select(x => new Domain.ViewModels.adverestingShow { AdverestingSizeId = x.AdverestingSizeId, attachmentFileName = x.attachment.FileName, Id = x.Id, Link = x.Link, Position = x.Position, Title = x.Title, TypeLink = x.TypeLink }).ToList(),
@@ -8610,6 +8835,9 @@ namespace TfShop.Controllers
             catch (Exception ex)
             {
                 Infrastructure.EventLog.Logger.Add(5, "api", "getproductsearch", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                // کدِ HTTPِ واقعیِ ۵۰۰: Next جوابِ غیرِ ok را کش نمی‌کند (با ۲۰۰ خطا ۳ ساعت کش می‌شد)
+                Response.StatusCode = 500;
+                Response.TrySkipIisCustomErrors = true;
                 return Json(new
                 {
                     msg = ex.Message,

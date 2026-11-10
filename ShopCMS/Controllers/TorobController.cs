@@ -74,7 +74,8 @@ namespace TfShop.Controllers
                     if (page.HasValue)
                         pg = page.Value;
                     int skip = (pg - 1) * 100;
-                    return Json(uow.ProductRepository.TorobListPagging(x => x.IsActive && x.ProductPrices.Any(p => p.IsDefault) && x.state == 4, x => x.OrderByDescending(o => o.Id), skip, 100));
+                    // کالایی که همه‌ی گروه‌هایش مخفی‌اند به ترب نمی‌رود - همان قاعده‌ی جستجویِ سایت (hiddenGuard در ApiV1Controller)
+                    return Json(uow.ProductRepository.TorobListPagging(x => x.IsActive && x.ProductPrices.Any(p => p.IsDefault) && x.state == 4 && !(x.ProductCategories.Any(c => c.hidden) && !x.ProductCategories.Any(c => !c.hidden)), x => x.OrderByDescending(o => o.Id), skip, 100));
                 }
                 else
                 {
@@ -84,7 +85,7 @@ namespace TfShop.Controllers
                     else if (page_url != null)
                         //id = int.Parse(page_url.Substring(page_url.ToLower().LastIndexOf("tfp/") + 4, page_url.Length - page_url.ToLower().LastIndexOf("tfp/") - 4));
                         id = int.Parse(page_url.Split('/')[4]);
-                    return Json(uow.ProductRepository.TorobList(x => x.Id == id && x.IsActive && x.ProductPrices.Any(p => p.IsDefault) && x.state == 4, x => x.OrderByDescending(o => o.Id)));
+                    return Json(uow.ProductRepository.TorobList(x => x.Id == id && x.IsActive && x.ProductPrices.Any(p => p.IsDefault) && x.state == 4 && !(x.ProductCategories.Any(c => c.hidden) && !x.ProductCategories.Any(c => !c.hidden)), x => x.OrderByDescending(o => o.Id)));
 
                 }
             }

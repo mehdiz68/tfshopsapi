@@ -72,6 +72,15 @@ namespace Domain
         [MaxLength(100, ErrorMessage = "حداکثر طول کارکتر ، 80")]
         public string Title2 { get; set; }
 
+        // عنوانِ تگِ h1 صفحه‌ها؛ خالی = همان رفتارِ قبلی (TFC: نام، TFS: عنوانِ سئویِ صفحه‌ی جستجو)
+        [Display(Name = "عنوان H1 صفحه گروه (TFC)")]
+        [MaxLength(200, ErrorMessage = "حداکثر طول کارکتر ، 200")]
+        public string H1Title { get; set; }
+
+        [Display(Name = "عنوان H1 صفحه جستجو (TFS)")]
+        [MaxLength(200, ErrorMessage = "حداکثر طول کارکتر ، 200")]
+        public string H1Title2 { get; set; }
+
         [Required(ErrorMessage = "اجباری")]
         [Display(Name = "عنوان لینک (URL) برای صفحه جستجو")]
         [MaxLength(80, ErrorMessage = "حداکثر طول کارکتر ، 100")]

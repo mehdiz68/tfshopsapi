@@ -67,7 +67,7 @@ namespace Repository.Service
                 Code = x.Code,
                 ProductStateId = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId.Value,
                 ProductStateTitle = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductState.Title,
-                ProductIcon = x.ProductIcon,
+                ProductIcon = LeanIcon(x.ProductIcon),
                 //  Brand = x.Brand,
                 MainImageFileName = GetMainImageFileName(x.Id),
                 //OtherImageFileName = GetOtherImageFileName(x.Id),
@@ -114,7 +114,7 @@ namespace Repository.Service
                 Code = x.Code,
                 ProductStateId = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId.Value,
                 ProductStateTitle = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductState.Title,
-                ProductIcon = x.ProductIcon,
+                ProductIcon = LeanIcon(x.ProductIcon),
                 //  Brand = x.Brand,
                 MainImageFileName = GetMainImageFileName(x.Id),
                 //OtherImageFileName = GetOtherImageFileName(x.Id),
@@ -165,7 +165,7 @@ namespace Repository.Service
                 Code = x.Code,
                 ProductStateId = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId.Value,
                 ProductStateTitle = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductState.Title,
-                ProductIcon = x.ProductIcon,
+                ProductIcon = LeanIcon(x.ProductIcon),
                 //  Brand = x.Brand,
                 MainImageFileName = GetMainImageFileName(x.Id),
                 //OtherImageFileName = GetOtherImageFileName(x.Id),
@@ -221,7 +221,7 @@ namespace Repository.Service
                 Code = x.Code,
                 ProductStateId = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId.Value,
                 ProductStateTitle = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductState.Title,
-                ProductIcon = x.ProductIcon,
+                ProductIcon = LeanIcon(x.ProductIcon),
                 //  Brand = x.Brand,
                 MainImageFileName = GetMainImageFileName(x.Id),
                 //OtherImageFileName = GetOtherImageFileName(x.Id),
@@ -270,7 +270,7 @@ namespace Repository.Service
                 Code = x.Code,
                 ProductStateId = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId.Value,
                 ProductStateTitle = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductState.Title,
-                ProductIcon = x.ProductIcon,
+                ProductIcon = LeanIcon(x.ProductIcon),
                 Brand = x.Brand,
                 MainImageFileName = GetMainImageFileName(x.Id),
                 //OtherImageFileName = GetOtherImageFileName(x.Id),
@@ -541,7 +541,7 @@ namespace Repository.Service
                 Code = x.Code,
                 ProductStateId = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId.Value,
                 ProductStateTitle = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductState.Title,
-                ProductIcon = x.ProductIcon,
+                ProductIcon = LeanIcon(x.ProductIcon),
                 // //  Brand = x.Brand,
                 MainImageFileName = GetMainImageFileName(x.Id),
                 // //OtherImageFileName = GetOtherImageFileName(x.Id),
@@ -618,7 +618,7 @@ namespace Repository.Service
                 Code = x.Code,
                 ProductStateId = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductStateId.Value,
                 ProductStateTitle = x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().ProductState.Title,
-                ProductIcon = x.ProductIcon,
+                ProductIcon = LeanIcon(x.ProductIcon),
                 //    Brand = x.Brand,
                 Price = GetPrice(x.Id, x.ProductPrices.Where(a => a.IsDefault).FirstOrDefault().Price, x.TaxId),
                 MainImageFileName = GetMainImageFileName(x.Id),
@@ -687,7 +687,7 @@ namespace Repository.Service
                 Code = x.code,
                 ProductStateId = x.ProductStateId.Value,
                 ProductStateTitle = x.ProductState.Title,
-                ProductIcon = x.Product.ProductIcon,
+                ProductIcon = LeanIcon(x.Product.ProductIcon),
                 //    Brand = x.Brand,
                 Price = GetPrice(x.Id, x.Price, x.Product.TaxId),
                 MainImageFileName = GetMainImageFileName(x.Id),
@@ -726,6 +726,15 @@ namespace Repository.Service
 
             var queryResult = context.Database.SqlQuery<string>(sqlQuery).AsQueryable();
             return queryResult.ToList();
+        }
+
+        /// <summary>
+        /// کپیِ سبکِ برچسبِ محصول برایِ خروجیِ JSON: entityِ خامِ ProductIcon (با Products و ارتباط‌هایش) در JavaScriptSerializer
+        /// خطایِ circular reference می‌دهد - بیرون از try و بدونِ لاگ، و صفحه‌ی گروهی که محصولِ برچسب‌دار دارد 404 می‌شد.
+        /// </summary>
+        public static ProductIcon LeanIcon(ProductIcon icon)
+        {
+            return icon == null ? null : new ProductIcon { Id = icon.Id, Title = icon.Title, Cover = icon.Cover };
         }
         /// <summary>
         /// کوئری برای ئیدا کردن اولین تصویر یک کالا

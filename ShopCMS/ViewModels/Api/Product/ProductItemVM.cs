@@ -42,6 +42,8 @@ namespace TfShop.ViewModels.Api.HeaderVM
         public int Id { get; set; }
         public int PrId { get; set; }
         public string title { get; set; }
+        /// <summary>نامِ کالا (Products.Name) - کوتاه‌تر از عنوان؛ کارت‌هایِ شگفت‌انگیزِ موبایل</summary>
+        public string name { get; set; }
         public string shortTitle { get; set; }
         public string pageAdress { get; set; }
         public long price { get; set; }

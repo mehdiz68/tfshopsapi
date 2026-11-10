@@ -36,6 +36,8 @@ namespace UnitOfWork
         private GenericRepository<NewsLetterEmail> newsLetterEmailRepository;
         private GenericRepository<Slider> sliderRepository;
         private GenericRepository<SliderImage> sliderImageRepository;
+        private GenericRepository<SliderImageSetting> sliderImageSettingRepository;
+        private GenericRepository<TfShowVideo> tfShowVideoRepository;
         private GenericRepository<Category> categoryRepository;
         private GenericRepository<Comment> commentRepository;
         private GenericRepository<ContactUs> contactUsRepository;
@@ -1994,6 +1996,28 @@ namespace UnitOfWork
                     this.sliderImageRepository = new GenericRepository<SliderImage>(context);
                 }
                 return sliderImageRepository;
+            }
+        }
+        public GenericRepository<SliderImageSetting> SliderImageSettingRepository
+        {
+            get
+            {
+                if (this.sliderImageSettingRepository == null)
+                {
+                    this.sliderImageSettingRepository = new GenericRepository<SliderImageSetting>(context);
+                }
+                return sliderImageSettingRepository;
+            }
+        }
+        public GenericRepository<TfShowVideo> TfShowVideoRepository
+        {
+            get
+            {
+                if (this.tfShowVideoRepository == null)
+                {
+                    this.tfShowVideoRepository = new GenericRepository<TfShowVideo>(context);
+                }
+                return tfShowVideoRepository;
             }
         }
 

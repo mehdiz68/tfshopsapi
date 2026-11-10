@@ -216,6 +216,8 @@
     <Compile Include="Setting.cs" />
     <Compile Include="Slider.cs" />
     <Compile Include="SliderImage.cs" />
+    <Compile Include="SliderImageSetting.cs" />
+    <Compile Include="TfShowVideo.cs" />
     <Compile Include="SmsSender.cs" />
     <Compile Include="Social.cs" />
     <Compile Include="Source.cs" />

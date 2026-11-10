@@ -81,6 +81,8 @@ namespace DataLayer
         public DbSet<ShoppingWorkTime> ShoppingWorkTimes { get; set; }
         public DbSet<Slider> Sliders { get; set; }
         public DbSet<SliderImage> SliderImages { get; set; }
+        public DbSet<SliderImageSetting> SliderImageSettings { get; set; }
+        public DbSet<TfShowVideo> TfShowVideos { get; set; }
         public DbSet<SmsSender> SmsSenders { get; set; }
         public DbSet<Social> Socials { get; set; }
         public DbSet<Source> Sources { get; set; }
@@ -281,6 +283,8 @@ namespace DataLayer
             modelBuilder.Configurations.Add(new OtherImage.Configuration());
             modelBuilder.Configurations.Add(new Comment.Configuration());
             modelBuilder.Configurations.Add(new SliderImage.Configuration());
+            modelBuilder.Configurations.Add(new SliderImageSetting.Configuration());
+            modelBuilder.Configurations.Add(new TfShowVideo.Configuration());
             modelBuilder.Configurations.Add(new Social.Configuration());
             modelBuilder.Configurations.Add(new Menu.Configuration());
             modelBuilder.Configurations.Add(new ContactUs.Configuration());

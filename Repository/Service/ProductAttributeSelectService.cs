@@ -198,6 +198,26 @@ namespace Repository.Service
 
 
 
+        // شرطِ «این محصول برایِ خصوصیتِ attributeId یکی از این مقدارها را دارد»
+        private static string AttributeExists(int attributeId, string valuesSql)
+        {
+            return $" AND EXISTS (select 1 from ProductAttributeSelects fpas"
+                + " inner join ProductAttributeGroupSelects fpags ON fpags.Id=fpas.ProductAttributeCategorySelectId"
+                + $" where fpas.ProductId=Products.Id AND fpags.AttributeId={attributeId} AND fpas.Value IN ({valuesSql})) ";
+        }
+
+        private static string AttributeExistsQuery(List<AttributeViewModel> filters)
+        {
+            string q = string.Empty;
+            foreach (var group in filters.Where(x => x.Value != null).GroupBy(x => x.Key1))
+            {
+                // مقدار از URL می‌آید: کوتیشن دوتایی می‌شود تا داخلِ رشته‌ی SQL بماند
+                var values = string.Join(",", group.Select(x => "N'" + x.Value.Replace("'", "''") + "'").Distinct());
+                q += AttributeExists(group.Key, values);
+            }
+            return q;
+        }
+
         /// <summary>
         /// نتایج سرچ و دسته بندی برای محصولات
         /// </summary>
@@ -240,38 +260,18 @@ namespace Repository.Service
 
             if (noAttributeSelect != null && noAttributeSelect.Value == false)
             {
-                if (totalFilters.AttributeViewModels != null && totalFilters.AttributeViewModels.Count > 0)
+                // فیلترِ خصوصیت‌ها: گزینه‌هایِ یک خصوصیت با «یا» (هر کدام از مقدارها)، خصوصیت‌هایِ مختلف با «و».
+                // قبلاً همه با OR رویِ یک ردیف جمع می‌شدند، پس «جنس=فولاد» + «سایز=۲۰» محصولی را هم می‌آورد که فقط
+                // یکی را داشت، و فیلترهایِ تیک‌دار (check) attrQuerys را بازنویسی می‌کردند و خصوصیت‌ها نادیده می‌ماندند.
+                // هر خصوصیت یک EXISTS جدا رویِ همان محصول (Products.Id) است.
+                if (totalFilters.AttributeViewModels != null)
+                    attrQuerys += AttributeExistsQuery(totalFilters.AttributeViewModels);
+                if (totalFilters.DbListViewModels != null)
+                    dblistQuerys += AttributeExistsQuery(totalFilters.DbListViewModels);
+                if (totalFilters.LogicViewModels != null)
                 {
-                    attrQuerys = " AND (";
-                    foreach (var item in totalFilters.AttributeViewModels)
-                    {
-                        attrQuerys += $"(ProductAttributeGroupSelects.AttributeId={item.Key1} AND ProductAttributeSelects.Value=N'{item.Value}')";
-                        attrQuerys += index != totalFilters.AttributeViewModels.Count ? " OR " : ")";
-                        index += 1;
-                    }
-                }
-                index = 1;
-                if (totalFilters.DbListViewModels != null && totalFilters.DbListViewModels.Count > 0)
-                {
-                    dblistQuerys = " AND (";
-                    foreach (var item in totalFilters.DbListViewModels)
-                    {
-                        dblistQuerys += $"(ProductAttributeGroupSelects.AttributeId={item.Key1} AND ProductAttributeSelects.Value='{item.Value}')";
-                        dblistQuerys += index != totalFilters.DbListViewModels.Count ? " OR " : ")";
-                        index += 1;
-                    }
-                }
-
-                index = 1;
-                if (totalFilters.LogicViewModels != null && totalFilters.LogicViewModels.Count > 0)
-                {
-                    attrQuerys = " AND (";
-                    foreach (var item in totalFilters.LogicViewModels)
-                    {
-                        attrQuerys += $"(ProductAttributeGroupSelects.AttributeId={item.Key} AND ProductAttributeSelects.Value='1')";
-                        attrQuerys += index != totalFilters.LogicViewModels.Count ? " OR " : ")";
-                        index += 1;
-                    }
+                    foreach (var key in totalFilters.LogicViewModels.Select(x => x.Key).Distinct())
+                        attrQuerys += AttributeExists(key, "N'1'");
                 }
             }
 
