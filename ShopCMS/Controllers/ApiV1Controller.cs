@@ -15784,6 +15784,72 @@ namespace TfShop.Controllers
             }
         }
 
+        /// <summary>
+        /// سفارش‌هایِ کاربر که هنوز نظرسنجی‌شان کامل نشده (صفحه‌ی /profile/rate): همان شرطِ اکشنِ Rate
+        /// (پرداخت و تحویل شده، لغو/مرجوع نشده) + حداقل یک کالا که کاربر رویش نظر نداده (همان شرطِ
+        /// GetNoUserCommenProductsRanks). از جدید به قدیم، ۱۰تایی.
+        /// </summary>
+        [JWTAuthorize]
+        public JsonResult RateOrders(int? page)
+        {
+            string Token = Request.Headers.GetValues("AuthToken").FirstOrDefault();
+            string userId = Authentication.ValidateToken(Token);
+            if (userId == null)
+                return Json(new { status = 10, Message = "Token Expired!" }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                const int perPage = 10;
+                int pageNum = page.HasValue && page.Value > 0 ? page.Value : 1;
+
+                var query = uow.OrderRepository.GetQueryList().AsNoTracking()
+                    .Where(x => x.UserId == userId && x.IsActive
+                        && x.OrderWallets.Any(s => s.Wallet.State == true)
+                        && x.OrderStates.Any(s => s.state == OrderStatus.تایید_پرداخت)
+                        && x.OrderStates.Any(s => s.state == OrderStatus.تحویل_داده_شده)
+                        && !x.OrderStates.Any(s => s.state == OrderStatus.لغو_شده)
+                        && !x.OrderStates.Any(s => s.state == OrderStatus.مرجوعی)
+                        && x.OrderRows.Any(r => !r.Product.ProductComments.Any(c => c.UserId == userId)));
+
+                int total = query.Count();
+
+                var rows = query.OrderByDescending(x => x.InsertDate)
+                    .Skip((pageNum - 1) * perPage).Take(perPage)
+                    .Select(x => new
+                    {
+                        x.CustomerOrderId,
+                        x.InsertDate,
+                        ProductCount = x.OrderRows.Select(r => r.ProductId).Distinct().Count(),
+                        RemainCount = x.OrderRows.Where(r => !r.Product.ProductComments.Any(c => c.UserId == userId))
+                            .Select(r => r.ProductId).Distinct().Count(),
+                        Images = x.OrderRows.Select(r => r.Product.ProductImages.Where(i => i.IsMain).Select(i => i.Image.FileName).FirstOrDefault())
+                            .Where(f => f != null).Take(4)
+                    })
+                    .ToList();
+
+                return Json(new
+                {
+                    orders = rows.Select(x => new
+                    {
+                        customerOrderId = x.CustomerOrderId,
+                        insertDate = CoreLib.Infrastructure.DateTime.DateTimeConverter.ChangeMiladiToLongShamsi(x.InsertDate),
+                        productCount = x.ProductCount,
+                        remainCount = x.RemainCount,
+                        images = x.Images.ToList()
+                    }),
+                    total = total,
+                    page = pageNum,
+                    pageCount = (int)Math.Ceiling(total / (double)perPage),
+                    statusCode = 200
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "rateorders", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { Message = "خطایی رخ داد.", statusCode = 500 }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         [JWTAuthorize]
         public JsonResult Rate(int id, int? step, int? status)
         {
@@ -15858,7 +15924,9 @@ namespace TfShop.Controllers
                     ProductAdvantageTitless = uow.ProductAdvantageTitleRepository.Get(x => x, x => x.IsActive, x => x.OrderBy(s => s.DisplayOrder)),
                     ProductDisAdvantageTitles = uow.ProductDisAdvantageTitleRepository.Get(x => x, x => x.IsActive, x => x.OrderBy(s => s.DisplayOrder)),
                     OrderRateTitle = uow.SettingRepository.Get(x => x.OrderRateTitle, null).First(),
-                    orderRateItems = uow.OrderRateItemRepository.Get(x => x, x => !savedOrderRates.Contains(x.Id), x => x.OrderBy(s => s.Title), "", 0, 1),
+                    // سؤال‌هایِ خودِ سفارش (مرحله‌ی ۱) به Porsline رفته‌اند؛ این‌جا فقط نظر رویِ کالاها (مرحله‌ی ۲) می‌ماند.
+                    // با فهرستِ خالی، همه‌ی شرط‌هایِ پایین کاربر را از مرحله‌ی ۱ به ۲ (و در پایان به ۳) می‌برند.
+                    orderRateItems = Enumerable.Empty<Domain.OrderRateItem>(),
                     products = uow.ProductCommentRepository.GetNoUserCommenProductsRanks(order.Id, userId, out count),
                     productCount = order.OrderRows.Count,
                     productRemainCount = count
