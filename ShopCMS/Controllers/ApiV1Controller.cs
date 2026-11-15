@@ -4002,7 +4002,7 @@ namespace TfShop.Controllers
                                     int Extraprice2 = item2.HasExtraPrice2 ? item2.ExtraPriceValue : 0;
                                     int InsuranceCost = (item2.HasExtraPrice && extraprice ? Convert.ToInt32(Math.Ceiling((basketStep1.ProductBasketItems.Sum(x => x.finalPrice) * 0.005) * 0.001) * 1000) : 0);
                                     InsuranceCost = InsuranceCost > 0 ? InsuranceCost > 100000 ? 100000 : InsuranceCost < 15000 ? 15000 : InsuranceCost : 0;
-                                    int PackageCost = (item2.HasExtraPrice ? Convert.ToInt32(Math.Ceiling((extraPrice + uow.SendwayBoxRepository.GetByID(item.SendwayBox.Id).BoxPrice) * 0.001) * 1000) : 0);
+                                    int PackageCost = PackageCostCalculator.Calculate(basketStep1.ProductBasketItems, item2.HasExtraPrice, uow.SendwayBoxRepository.GetByID(item.SendwayBox.Id).BoxPrice);
 
                                     int? cost = uow.ProductPriceRepository.GetSendwayCostV2(item.ProductPriceIdList, userCityid.Value, item.SendwayBox.Id, item2.Id, basketStep1.ProductBasketItems.Sum(x => x.productWeight * x.UserQuantity), basketStep1.ProductBasketItems.Sum(x => x.finalPrice * x.UserQuantity), PackageCost, out freesend, basketStep1.ProductBasketItems.Select(x => Convert.ToInt32(x.ProductPackageType)).ToList()) + InsuranceCost + PackageCost + Extraprice2;
 
@@ -4078,7 +4078,7 @@ namespace TfShop.Controllers
                                         int Extraprice2 = item2.HasExtraPrice2 ? item2.ExtraPriceValue : 0;
                                         int InsuranceCost = (item2.HasExtraPrice && extraprice ? Convert.ToInt32(Math.Ceiling((basketStep1.ProductBasketItems.Sum(x => x.finalPrice) * 0.005) * 0.001) * 1000) : 0);
                                         InsuranceCost = InsuranceCost > 0 ? InsuranceCost > 100000 ? 100000 : InsuranceCost < 15000 ? 15000 : InsuranceCost : 0;
-                                        int PackageCost = (item2.HasExtraPrice ? Convert.ToInt32(Math.Ceiling((extraPrice + uow.SendwayBoxRepository.GetByID(item.SendwayBox.Id).BoxPrice) * 0.001) * 1000) : 0);
+                                        int PackageCost = PackageCostCalculator.Calculate(basketStep1.ProductBasketItems, item2.HasExtraPrice, uow.SendwayBoxRepository.GetByID(item.SendwayBox.Id).BoxPrice);
 
                                         int? cost = uow.ProductPriceRepository.GetSendwayCostV2(item.ProductPriceIdList, userCityid.Value, item.SendwayBox.Id, item2.Id, basketStep1.ProductBasketItems.Sum(x => x.productWeight * x.UserQuantity), basketStep1.ProductBasketItems.Sum(x => x.finalPrice * x.UserQuantity), PackageCost, out freesend, basketStep1.ProductBasketItems.Select(x => x.ProductPackageType).ToList()) + InsuranceCost + PackageCost + Extraprice2;
 
@@ -14150,29 +14150,44 @@ namespace TfShop.Controllers
                         Id = d.Id,
 
                         SendWayId = d.ProductSendWayId,
-                        PhoneNumber = d.UserAddressId.HasValue
-        ? d.UserAddress.PhoneNumber
-        : order.User.PhoneNumber,
+                        // آدرسِ مرسوله از رونوشتی خوانده می‌شود که موقعِ ثبتِ سفارش رویِ خودِ OrderDelivery ذخیره شده (همان آدرسی
+                        // که مشتری انتخاب کرده و ادمین با «ویرایش مرسوله» اصلاح می‌کند). قبلاً از آدرسِ فعلیِ کاربر/دفترچه
+                        // خوانده می‌شد و بعد از عوض شدنِ آدرسِ اصلی یا ویرایشِ مرسوله، آدرسِ دیگری نشان داده می‌شد.
+                        // سفارش‌هایِ خیلی قدیمی که رونوشت ندارند همان مسیرِ قبلی را می‌روند.
+                        PhoneNumber = !String.IsNullOrEmpty(d.Mobile)
+        ? d.Mobile
+        : d.UserAddressId.HasValue ? d.UserAddress.PhoneNumber : order.User.PhoneNumber,
 
-                        FullName = d.UserAddressId.HasValue
-        ? d.UserAddress.FullName
-        : order.User.FirstName + " " + order.User.LastName,
+                        FullName = !String.IsNullOrEmpty(d.FullName)
+        ? d.FullName
+        : d.UserAddressId.HasValue ? d.UserAddress.FullName : order.User.FirstName + " " + order.User.LastName,
 
-                        Province = d.UserAddressId.HasValue
-        ? d.UserAddress.CityEntity.Province.Name
-        : (order.User.CityId.HasValue
-            ? order.User.CityEntity.Province.Name
-            : null),
+                        Province = !String.IsNullOrEmpty(d.Address)
+        ? d.Provience
+        : d.UserAddressId.HasValue
+            ? d.UserAddress.CityEntity.Province.Name
+            : (order.User.CityId.HasValue ? order.User.CityEntity.Province.Name : null),
 
-                        City = d.UserAddressId.HasValue
-        ? d.UserAddress.CityEntity.Name
-        : (order.User.CityId.HasValue
-            ? order.User.CityEntity.Name
-            : null),
+                        City = !String.IsNullOrEmpty(d.Address)
+        ? d.City
+        : d.UserAddressId.HasValue
+            ? d.UserAddress.CityEntity.Name
+            : (order.User.CityId.HasValue ? order.User.CityEntity.Name : null),
 
-                        Address = !d.UserAddressId.HasValue ? order.User.Address : d.UserAddress.Address,
-                        AddressUnit = !d.UserAddressId.HasValue ? (String.IsNullOrEmpty(order.User.AddressUnit) ? "" : " ، پلاک  " + order.User.AddressNumber) : (String.IsNullOrEmpty(d.UserAddress.AddressNumber) ? "" : " ، پلاک  " + d.UserAddress.AddressNumber),
-                        AddressNumber = !d.UserAddressId.HasValue ? (String.IsNullOrEmpty(order.User.AddressUnit) ? "" : " ، پلاک  " + order.User.AddressUnit) : (String.IsNullOrEmpty(d.UserAddress.AddressUnit) ? "" : " ، پلاک  " + d.UserAddress.AddressUnit),
+                        // رونوشت پلاک و واحد را خودش دارد
+                        Address = !String.IsNullOrEmpty(d.Address)
+        ? d.Address
+        : !d.UserAddressId.HasValue ? order.User.Address : d.UserAddress.Address,
+                        AddressNumber = !String.IsNullOrEmpty(d.Address)
+        ? ""
+        : !d.UserAddressId.HasValue
+            ? (String.IsNullOrEmpty(order.User.AddressNumber) ? "" : " ، پلاک  " + order.User.AddressNumber)
+            : (String.IsNullOrEmpty(d.UserAddress.AddressNumber) ? "" : " ، پلاک  " + d.UserAddress.AddressNumber),
+                        AddressUnit = !String.IsNullOrEmpty(d.Address)
+        ? ""
+        : !d.UserAddressId.HasValue
+            ? (String.IsNullOrEmpty(order.User.AddressUnit) ? "" : " ، واحد  " + order.User.AddressUnit)
+            : (String.IsNullOrEmpty(d.UserAddress.AddressUnit) ? "" : " ، واحد  " + d.UserAddress.AddressUnit),
                         RequestDate = d.RequestDate,
                         PredictDate = d.PredictDate,
                         AdminSelectedSendwayId = d.AdminSelectedSendway != null ? d.AdminSelectedSendway.Id : 0,

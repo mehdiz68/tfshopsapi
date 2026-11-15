@@ -128,6 +128,9 @@ namespace Domain
         [Display(Name = "‎هزینه اضافی حمل (برای یک قلم کالا به تومان)")]
         public int ExtraSendPrice { get; set; }
 
+        [Display(Name = "بدون هزینه بسته‌بندی")]
+        public bool NoPackageCost { get; set; }
+
         [Display(Name = "مالیات")]
         public int? TaxId { get; set; }
         public  Tax Tax { get; set; }

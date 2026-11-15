@@ -645,7 +645,7 @@ namespace Repository.Service
 
                                 InsuranceCost = InsuranceCost > 0 ? InsuranceCost > 100000 ? 100000 : InsuranceCost < 15000 ? 15000 : InsuranceCost : 0;
                                 //PackageCost = (item.ProductSendWay.HasExtraPrice ? Convert.ToInt32(Math.Ceiling(extraPrice * 0.001) * 1000) : 0);
-                                PackageCost = (item.ProductSendWay.HasExtraPrice ? Convert.ToInt32(Math.Ceiling((extraPrice + context.SendwayBoxes.Find(item.SendwayBox.Id).BoxPrice) * 0.001) * 1000) : 0);
+                                PackageCost = PackageCostCalculator.Calculate(ProductBasketItems, item.ProductSendWay.HasExtraPrice, context.SendwayBoxes.Find(item.SendwayBox.Id).BoxPrice);
 
                                 DeliveryPosCost = item.DeliveryPos ? Convert.ToInt32(bankaccount.DeliveryPosPrice) : 0;
                                 Extraprice2Cost = item.ProductSendWay.HasExtraPrice2 ? item.ProductSendWay.ExtraPriceValue : 0;

@@ -38,6 +38,7 @@ namespace Domain.ViewModels
         public ProductAttributeItem garanty { get; set; }
         public string weight { get; set; }
         public int extraprice { get; set; }
+        public bool noPackageCost { get; set; }
         public int productWeight { get; set; }
         public long rawprice { get; set; }
         public long Price { get; set; }
@@ -107,6 +108,7 @@ namespace Domain.ViewModels
         public string garanty { get; set; }
         public string weight { get; set; }
         public int extraprice { get; set; }
+        public bool noPackageCost { get; set; }
         public int productWeight { get; set; }
         public long rawprice { get; set; }
         public long Price { get; set; }
@@ -144,5 +146,32 @@ namespace Domain.ViewModels
         public int h { get; set; }
 
         #endregion
+    }
+    /// <summary>
+    /// هزینه‌ی بسته‌بندیِ مرسوله = (بیشترین «هزینه‌ی اضافیِ حمل» بینِ کالاها + قیمتِ کارتن)، گرد به هزار، فقط وقتی روشِ ارسال
+    /// HasExtraPrice دارد. کالاهایی که «بدون هزینه بسته‌بندی» (Product.NoPackageCost) دارند در این حساب نمی‌آیند؛ اگر همه‌ی
+    /// کالاها این تیک را داشته باشند هزینه‌ی بسته‌بندی صفر است. یک‌جا تعریف شده تا سبد، ثبتِ سفارش و پنل یکسان حساب کنند.
+    /// </summary>
+    public static class PackageCostCalculator
+    {
+        public static int Calculate(IEnumerable<int> chargedExtraPrices, bool sendwayHasExtraPrice, int boxPrice)
+        {
+            if (!sendwayHasExtraPrice)
+                return 0;
+            var prices = chargedExtraPrices.ToList();
+            if (!prices.Any())
+                return 0;
+            return Convert.ToInt32(Math.Ceiling((prices.Max() + boxPrice) * 0.001) * 1000);
+        }
+
+        public static int Calculate(IEnumerable<ProductBasketItem> items, bool sendwayHasExtraPrice, int boxPrice)
+        {
+            return Calculate(items.Where(x => !x.noPackageCost).Select(x => x.extraprice), sendwayHasExtraPrice, boxPrice);
+        }
+
+        public static int Calculate(IEnumerable<ProductBasketItemV2> items, bool sendwayHasExtraPrice, int boxPrice)
+        {
+            return Calculate(items.Where(x => !x.noPackageCost).Select(x => x.extraprice), sendwayHasExtraPrice, boxPrice);
+        }
     }
 }
