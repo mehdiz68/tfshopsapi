@@ -149,6 +149,7 @@ namespace DataLayer
         public DbSet<OrderWallet> OrderWallets { get; set; }
         public DbSet<OrderRate> OrderRates { get; set; }
         public DbSet<OrderRateItem> OrderRateItems { get; set; }
+        public DbSet<OrderSurveyReturn> OrderSurveyReturns { get; set; }
         public DbSet<UserAddress> UserAddresses { get; set; }
         public DbSet<SmsPattern> SmsPatterns { get; set; }
         public DbSet<letmeKnowMessage> letmeKnowMessages { get; set; }
@@ -248,6 +249,7 @@ namespace DataLayer
             modelBuilder.Configurations.Add(new PhoneChangeLog.Configuration());
 
             modelBuilder.Configurations.Add(new CreateOrderKey.Configuration());
+            modelBuilder.Configurations.Add(new OrderSurveyReturn.Configuration());
             modelBuilder.Configurations.Add(new ProductGiftPackage.Configuration());
             modelBuilder.Configurations.Add(new ProductGiftPackageOrder.Configuration());
 

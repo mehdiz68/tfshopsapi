@@ -125,6 +125,7 @@ namespace UnitOfWork
         private GenericRepository<BankAccountOnlineInfo> bankAccountOnlineInfoRepository;
         private GenericRepository<ForWhat> forWhatRepository;
         private GenericRepository<OrderRate> orderRateRepository;
+        private GenericRepository<OrderSurveyReturn> orderSurveyReturnRepository;
         private GenericRepository<OrderRateItem> orderRateItemRepository;
         private OrderService orderRepository;
         private GenericRepository<OrderAttribute> orderAttributeRepository;
@@ -1171,6 +1172,17 @@ namespace UnitOfWork
                     this.orderRateRepository = new GenericRepository<OrderRate>(context);
                 }
                 return orderRateRepository;
+            }
+        }
+        public GenericRepository<OrderSurveyReturn> OrderSurveyReturnRepository
+        {
+            get
+            {
+                if (this.orderSurveyReturnRepository == null)
+                {
+                    this.orderSurveyReturnRepository = new GenericRepository<OrderSurveyReturn>(context);
+                }
+                return orderSurveyReturnRepository;
             }
         }
         public GenericRepository<OrderRateItem> OrderRateItemRepository

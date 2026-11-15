@@ -7209,7 +7209,7 @@ namespace TfShop.Controllers
 
                 string messages;
                 List<attachment> newAttachmentList;
-                var result = UploadMultipleFile(UploadedImages, UploadedImages.Select(x => x.FileName).ToArray(), "on", "3", "on", "on", 1, 1437, "1", false, "", out messages, out newAttachmentList, userid);
+                var result = UploadMultipleFile(UploadedImages, UploadedImages.Select(x => x.FileName).ToArray(), "on", "3", "on", "off", 1, 1437, "1", false, "", out messages, out newAttachmentList, userid);
 
                 if (result == null || newAttachmentList == null || !newAttachmentList.Any())
                     return Json(new { Message = "در آپلود تصویر خطایی رخ داد.", statusCode = 500 }, JsonRequestBehavior.AllowGet);
@@ -10642,16 +10642,7 @@ namespace TfShop.Controllers
                         uow.ProductCommentRepository.Update(ecomment);
                         uow.Save();
 
-                        if (uow.OrderRepository.Any(x => x.Id, x => x.UserId == userid && x.OrderRows.Any(s => s.ProductId == ProductId) && x.IsActive && x.OrderWallets.Any(s => s.Wallet.State == true) && x.OrderStates.Any(s => s.state == OrderStatus.تایید_پرداخت) && x.compeleteRate == false))
-                        {
-                            var order = uow.OrderRepository.Get(x => x, x => x.UserId == userid && x.OrderRows.Any(s => s.ProductId == ProductId) && x.IsActive && x.OrderWallets.Any(s => s.Wallet.State == true) && x.OrderStates.Any(s => s.state == OrderStatus.تایید_پرداخت) && x.compeleteRate == false).SingleOrDefault();
-                            if (order != null)
-                            {
-                                order.compeleteRate = true;
-                                uow.OrderRepository.Update(order);
-                                uow.Save();
-                            }
-                        }
+                        MarkOrdersRated(userid, ProductId, customerOrderId);
                     }
                     else
                     {
@@ -10696,7 +10687,7 @@ namespace TfShop.Controllers
                             {
                                 string messages = "";
                                 List<attachment> newAttachmentList = new List<attachment>();
-                                var result = UploadMultipleFile(UploadedImages, (!String.IsNullOrEmpty(Title) ? new string[] { Title } : UploadedImages.Select(x => x.FileName.Substring(0, x.FileName.LastIndexOf("."))).ToArray()), "on", "3", "on", "on", 1, 1437, "1", false, "", out messages, out newAttachmentList, userid);
+                                var result = UploadMultipleFile(UploadedImages, (!String.IsNullOrEmpty(Title) ? new string[] { Title } : UploadedImages.Select(x => x.FileName.Substring(0, x.FileName.LastIndexOf("."))).ToArray()), "on", "3", "on", "off", 1, 1437, "1", false, "", out messages, out newAttachmentList, userid);
                                 if (result != null)
                                 {
                                     e2comment.attachments = new List<attachment>();
@@ -10712,16 +10703,7 @@ namespace TfShop.Controllers
                         uow.ProductCommentRepository.Insert(e2comment);
                         uow.Save();
 
-                        if (uow.OrderRepository.Any(x => x.Id, x => x.UserId == userid && x.OrderRows.Any(s => s.ProductId == e2comment.ProductId) && x.IsActive && x.OrderWallets.Any(s => s.Wallet.State == true) && x.OrderStates.Any(s => s.state == OrderStatus.تایید_پرداخت) && x.compeleteRate == false))
-                        {
-                            var order = uow.OrderRepository.Get(x => x, x => x.UserId == userid && x.OrderRows.Any(s => s.ProductId == e2comment.ProductId) && x.IsActive && x.OrderWallets.Any(s => s.Wallet.State == true) && x.OrderStates.Any(s => s.state == OrderStatus.تایید_پرداخت) && x.compeleteRate == false).SingleOrDefault();
-                            if (order != null)
-                            {
-                                order.compeleteRate = true;
-                                uow.OrderRepository.Update(order);
-                                uow.Save();
-                            }
-                        }
+                        MarkOrdersRated(userid, e2comment.ProductId, customerOrderId);
                     }
 
 
@@ -10793,6 +10775,26 @@ namespace TfShop.Controllers
                 }, JsonRequestBehavior.AllowGet);
 
             }
+        }
+
+        /// <summary>
+        /// بعد از ثبتِ نظرِ کالا، سفارش(های) پرداخت‌شده‌ی همین کاربر که این کالا را دارند «نظرسنجی کامل» علامت می‌خورند
+        /// (یادآوریِ پیامکیِ نظرسنجی برایشان قطع شود). اگر از نظرسنجیِ یک سفارش آمده باشد (customerOrderId) فقط همان.
+        /// قبلاً SingleOrDefault بود و کاربری که این کالا را در بیش از یک سفارشِ کامل‌نشده داشت خطایِ
+        /// «Sequence contains more than one element» می‌گرفت (نظر ثبت می‌شد ولی پاسخ خطا بود).
+        /// </summary>
+        private void MarkOrdersRated(string userid, int productId, int? customerOrderId)
+        {
+            string orderNo = customerOrderId.HasValue ? customerOrderId.Value.ToString() : null;
+            var orders = uow.OrderRepository.GetQueryList()
+                .Where(x => x.UserId == userid && x.OrderRows.Any(s => s.ProductId == productId) && x.IsActive && x.OrderWallets.Any(s => s.Wallet.State == true) && x.OrderStates.Any(s => s.state == OrderStatus.تایید_پرداخت) && x.compeleteRate == false
+                    && (orderNo == null || x.CustomerOrderId == orderNo))
+                .ToList();
+            if (!orders.Any())
+                return;
+            foreach (var order in orders)
+                order.compeleteRate = true;
+            uow.Save();
         }
 
         protected List<EditorFile> UploadMultipleFile(HttpPostedFileBase[] uploadedFiles, string[] Title, string UseWaterMark, string WaterMarkType, string HasMultiSize, string UseCompression, Int16 compressionLevel, int? FolderId, string LanguageId, bool PopUpAttachements, string controllerName, out string messages, out List<attachment> newAttachmentList, string userid, bool fromComputer = false, bool uwebp = false, int? ProductId = null, int? ProductCommentId = null)
@@ -15851,7 +15853,7 @@ namespace TfShop.Controllers
         }
 
         [JWTAuthorize]
-        public JsonResult Rate(int id, int? step, int? status)
+        public JsonResult Rate(int id, int? step, int? status, string src)
         {
             string Token = Request.Headers.GetValues("AuthToken").FirstOrDefault();
             string userId = Authentication.ValidateToken(Token);
@@ -15908,7 +15910,36 @@ namespace TfShop.Controllers
                     }, JsonRequestBehavior.AllowGet);
                 }
 
-
+                // برگشت از نظرسنجیِ سفارش در Porsline (?src=porsline): سفارشِ معتبرِ همین کاربر ثبت می‌شود تا در پنل
+                // (مدیریت نظرات > نظرسنجی سفارشات) برچسبِ «از Porsline» بخورد (Domain.OrderSurveyReturn، یک ردیف برای هر سفارش).
+                // خطای ثبتش نظرسنجی را نمی‌شکند.
+                if (string.Equals(src, "porsline", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var surveyReturn = uow.OrderSurveyReturnRepository.GetByID(order.Id);
+                        if (surveyReturn == null)
+                        {
+                            uow.OrderSurveyReturnRepository.Insert(new Domain.OrderSurveyReturn
+                            {
+                                OrderId = order.Id,
+                                FirstAt = DateTime.Now,
+                                LastAt = DateTime.Now,
+                                Hits = 1
+                            });
+                        }
+                        else
+                        {
+                            surveyReturn.LastAt = DateTime.Now;
+                            surveyReturn.Hits++;
+                        }
+                        uow.Save();
+                    }
+                    catch (Exception ex)
+                    {
+                        Infrastructure.EventLog.Logger.Add(5, "api", "rate-porsline", false, 500, ex.Message, DateTime.Now, userId);
+                    }
+                }
 
                 stp = step;
 
