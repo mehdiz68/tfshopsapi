@@ -129,6 +129,7 @@
     <Compile Include="GeneralCodeGiftLog.cs" />
     <Compile Include="OrderRateItem.cs" />
     <Compile Include="OrderRate.cs" />
+    <Compile Include="CooperationRequest.cs" />
     <Compile Include="OrderSurveyReturn.cs" />
     <Compile Include="UnSentMessage .cs" />
     <Compile Include="UserActivityGroupSelect.cs" />

@@ -126,6 +126,7 @@ namespace UnitOfWork
         private GenericRepository<ForWhat> forWhatRepository;
         private GenericRepository<OrderRate> orderRateRepository;
         private GenericRepository<OrderSurveyReturn> orderSurveyReturnRepository;
+        private GenericRepository<CooperationRequest> cooperationRequestRepository;
         private GenericRepository<OrderRateItem> orderRateItemRepository;
         private OrderService orderRepository;
         private GenericRepository<OrderAttribute> orderAttributeRepository;
@@ -1172,6 +1173,17 @@ namespace UnitOfWork
                     this.orderRateRepository = new GenericRepository<OrderRate>(context);
                 }
                 return orderRateRepository;
+            }
+        }
+        public GenericRepository<CooperationRequest> CooperationRequestRepository
+        {
+            get
+            {
+                if (this.cooperationRequestRepository == null)
+                {
+                    this.cooperationRequestRepository = new GenericRepository<CooperationRequest>(context);
+                }
+                return cooperationRequestRepository;
             }
         }
         public GenericRepository<OrderSurveyReturn> OrderSurveyReturnRepository

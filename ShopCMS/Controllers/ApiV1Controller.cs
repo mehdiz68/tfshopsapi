@@ -598,6 +598,65 @@ namespace TfShop.Controllers
         }
 
         /// <summary>
+        /// فرمِ «درخواست همکاری» (خرید عمده / اعطای نمایندگی ...) - فرمِ CTAیِ سایت (CooperationForm در Next).
+        /// موبایل به شکلِ 09xxxxxxxxx ذخیره می‌شود (ارقامِ فارسی/عربی هم پذیرفته می‌شوند). اسپم: اگر همین موبایل
+        /// در ۳۰ دقیقه‌ی اخیر ثبت کرده باشد رکوردِ تازه نمی‌سازیم (همان پیامِ موفقیت)، و از یک IP بیش از ۵
+        /// درخواست در ساعت پذیرفته نمی‌شود. ip را route‌ِ Next از سرآیندهایِ CDN می‌دهد.
+        /// </summary>
+        [HttpPost]
+        public JsonResult SubmitCooperationRequest(string firstName, string lastName, string mobile, string topic, string sourcePage, string sourceTitle, string ip)
+        {
+            try
+            {
+                Func<string, int, string> clean = (v, max) =>
+                {
+                    v = Regex.Replace((v ?? "").Trim(), @"\s+", " ");
+                    return v.Length > max ? v.Substring(0, max) : v;
+                };
+                string fn = clean(firstName, 50), ln = clean(lastName, 50);
+                string m = new string((mobile ?? "").Select(ch =>
+                    ch >= '\u06F0' && ch <= '\u06F9' ? (char)('0' + ch - '\u06F0') :
+                    ch >= '\u0660' && ch <= '\u0669' ? (char)('0' + ch - '\u0660') : ch).Where(char.IsDigit).ToArray());
+                if (m.StartsWith("98") && m.Length == 12) m = "0" + m.Substring(2);
+                if (m.Length == 10 && m.StartsWith("9")) m = "0" + m;
+
+                if (fn.Length < 2 || ln.Length < 2)
+                    return Json(new { statusCode = 400, Message = "نام و نام خانوادگی را کامل وارد کنید." }, JsonRequestBehavior.AllowGet);
+                if (!Regex.IsMatch(m, @"^09\d{9}$"))
+                    return Json(new { statusCode = 400, Message = "شماره موبایل معتبر نیست." }, JsonRequestBehavior.AllowGet);
+
+                string ipv = clean(ip, 64);
+                DateTime now = DateTime.Now, recent = now.AddMinutes(-30), hourAgo = now.AddHours(-1);
+                var repo = uow.CooperationRequestRepository;
+
+                if (repo.Get(x => x.Id, x => x.Mobile == m && x.CreatedAt > recent).Any())
+                    return Json(new { statusCode = 200, Message = "درخواست شما ثبت شد. همکاران ما به‌زودی با شما تماس می‌گیرند." }, JsonRequestBehavior.AllowGet);
+                if (ipv.Length > 0 && repo.Get(x => x.Id, x => x.Ip == ipv && x.CreatedAt > hourAgo).Count() >= 5)
+                    return Json(new { statusCode = 429, Message = "تعداد درخواست‌ها زیاد است؛ کمی بعد دوباره امتحان کنید." }, JsonRequestBehavior.AllowGet);
+
+                repo.Insert(new CooperationRequest
+                {
+                    FirstName = fn,
+                    LastName = ln,
+                    Mobile = m,
+                    Topic = clean(topic, 50),
+                    SourcePage = clean(sourcePage, 400),
+                    SourceTitle = clean(sourceTitle, 150),
+                    Ip = ipv,
+                    CreatedAt = now,
+                    Status = CooperationRequestStatus.جدید
+                });
+                uow.Save();
+                return Json(new { statusCode = 200, Message = "درخواست شما ثبت شد. همکاران ما به‌زودی با شما تماس می‌گیرند." }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                Infrastructure.EventLog.Logger.Add(5, "api", "submitcooperationrequest", false, 500, ex.Message, DateTime.Now, "b11c3d7b-4d2d-4b58-85f1-2e8e0c8d6d84");
+                return Json(new { statusCode = 500, Message = "خطا در ثبت درخواست؛ دوباره امتحان کنید." }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        /// <summary>
         /// کدهای تأییدِ وبمستر و اسکریپت‌های شخصِ ثالث (گفتینو، آنالیتیکس، …) که در سایتِ قدیم
         /// با ‎@Html.Action("GetJsTools", "Home")‎ انتهای body هر صفحه رندر می‌شدند.
         /// هر دو فیلد HTMLِ خام‌اند و همان‌طور که در تنظیمات ذخیره شده‌اند برمی‌گردند.

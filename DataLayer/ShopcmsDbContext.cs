@@ -150,6 +150,7 @@ namespace DataLayer
         public DbSet<OrderRate> OrderRates { get; set; }
         public DbSet<OrderRateItem> OrderRateItems { get; set; }
         public DbSet<OrderSurveyReturn> OrderSurveyReturns { get; set; }
+        public DbSet<CooperationRequest> CooperationRequests { get; set; }
         public DbSet<UserAddress> UserAddresses { get; set; }
         public DbSet<SmsPattern> SmsPatterns { get; set; }
         public DbSet<letmeKnowMessage> letmeKnowMessages { get; set; }
